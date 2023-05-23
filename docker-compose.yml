@@ -1,0 +1,136 @@
+version: "3.8"
+services:
+  pgsql:
+    container_name: pgsql
+    image: postgres
+    env_file:
+      - ./apps/pgsql/.env
+    volumes:
+      - ./apps/pgsql/data:/data
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d comexp"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management-alpine
+    env_file:
+      - ./apps/rabbitmq/.env
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - ./apps/rabbitmq/data/:/var/lib/rabbitmq/
+      - ./apps/rabbitmq/log/:/var/log/rabbitmq/
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: api.Dockerfile
+    image: api
+    container_name: api
+    env_file:
+      - ./apps/api/env/dev
+    volumes:
+      - ./apps/api:/app
+    ports:
+      - 9000:9000
+    healthcheck:
+      test: curl --fail http://api:9000/healthcheck || exit 1
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      pgsql:
+        condition: service_healthy
+  worker:
+    build:
+      context: ./apps/api
+      dockerfile: worker.Dockerfile
+    image: worker
+    container_name: worker
+    env_file:
+      - ./apps/api/env/dev
+    volumes:
+      - ./apps/api:/app
+    depends_on:
+      api:
+        condition: service_healthy
+  dashboard:
+    build:
+      context: ./apps/api
+      dockerfile: flower.Dockerfile
+    image: dashboard
+    container_name: dashboard
+    ports:
+      - 5555:5555
+    env_file:
+      - ./apps/flower/.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  web:
+    build: ./apps/web/
+    image: web
+    restart: on-failure
+    container_name: web
+    ports:
+      - "3000:80"
+    env_file:
+      - ./apps/web/.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 10s
+      timeout: 30s
+      retries: 10
+    depends_on:
+      api:
+        condition: service_healthy
+
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    restart: unless-stopped
+    volumes:
+      - ./apps/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./apps/nginx/conf.d:/etc/nginx/conf.d
+      # - ./apps/nginx/conf.nossl.d/:/etc/nginx/conf.d/
+      - ./apps/certbot/conf:/etc/letsencrypt
+      - ./apps/certbot/www:/var/www/certbot
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"' && sed -e '/^http {/,/^}/{/^}/i\\client_max_body_size 0;' -e '}' /etc/nginx/nginx.conf"
+    ports:
+      - "80:80"
+      - "443:443"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 10s
+      timeout: 30s
+      retries: 10
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    restart: unless-stopped
+    volumes:
+      - ./apps/certbot/conf:/etc/letsencrypt
+      - ./apps/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 5d & wait $${!}; done;'"
+    depends_on:
+      api:
+        condition: service_healthy
