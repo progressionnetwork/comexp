@@ -84,11 +84,10 @@ http://api.comexp.intellectg.ru/docs
 
 ## Полезные ссылки
 - Веб сервис: https://comexp.intellectg.ru/
-- Административная панель: http://intellectg.ru/admin/
-- API сервис: http://api.intellectg.ru/
+- API сервис: http://api.comexp.intellectg.ru/
 - Документация API сервиса: http://api.comexp.intellectg.ru/docs
 - Мониторинг задач:  http://dashboard.comexp.intellectg.ru/
-- Github: https://github.com/gg-goodgenius/livecity
+- Github: https://github.com/progressionnetwork/comexp
 
 ## Стек используемых технологий и библиотек:
 - Python/Pandas/regex
