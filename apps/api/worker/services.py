@@ -342,14 +342,17 @@ def predict_works_and_incidents(
     )
     result = session.execute(statement)
     buildings = result.scalars().all()
+    print(f"Buildings find: {len(buildings)}")
 
-    statement = select(SourceSystem).where(SourceSystem.id == sourcesystem_id)
+    statement = select(SourceSystem).where(SourceSystem.id == source_id)
     result = session.execute(statement)
     source_system = result.scalar_one()
+    print(f"Source system: {source_system.name}")
 
     for building in buildings:
         works = get_works(unom=building.id, sourcesytem=source_system.name)
         if works is not None:
+            print(f"Works find for building={building.id}: {len(works)}")
             for work in works.keys():
                 statement = select(WorkType).where(WorkType.name == work.capitalize())
                 result = session.execute(statement)
@@ -370,10 +373,9 @@ def predict_works_and_incidents(
 
         incidents = get_incident(unom=building.id, sourcesytem=source_system.name)
         if incidents is not None:
+            print(f"incidents find for building={building.id}: {len(incidents)}")
             for incident in incidents.keys():
-                statement = (
-                    select(Event).where(Event.name == incident.capitalize()).where(Event.source_id == sourcesystem_id)
-                )
+                statement = select(Event).where(Event.name == incident.capitalize()).where(Event.source_id == source_id)
                 result = session.execute(statement)
                 incident_instance = result.scalar_one_or_none()
                 if incident_instance is None:

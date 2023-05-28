@@ -409,7 +409,7 @@ def predict_incident(df_merged, UNOM, source):
 
     try:
         best_inc_model.load_model(str(Path(Path(__file__).parent, "catboost_best_incident_model.cbm")))
-        print("catboost_best_incident_model.cbm loaded!")
+        # print("catboost_best_incident_model.cbm loaded!")
         # Дальнейшие действия с моделью
     except FileNotFoundError:
         print("Ошибка: файл модели catboost_best_incident_model не найден")
@@ -467,7 +467,7 @@ def predict_work(df_merged, UNOM, source):
     # Загрузка модели
     best_inc_model = CatBoostClassifier()
     best_inc_model.load_model(str(Path(Path(__file__).parent, "catboost_best_work_model.cbm")))
-    print("catboost_best_work_model.cbm loaded!")
+    # print("catboost_best_work_model.cbm loaded!")
 
     # Выбор одной строки данных по UNOM
     row = df_merged.loc[df_merged["UNOM"] == UNOM]
@@ -516,7 +516,7 @@ def predirct_fact_date_day_end(df_merged, UNOM, source):
     model = None
     try:
         model = joblib.load(str(Path(Path(__file__).parent, "FACT_DATE_END_day.sav")))
-        print("Модель FACT_DATE_END_day успешно загружена")
+        # print("Модель FACT_DATE_END_day успешно загружена")
         # Дальнейшие действия с моделью
     except FileNotFoundError:
         print("Ошибка: файл модели FACT_DATE_END_day не найден")
@@ -586,7 +586,7 @@ def predirct_fact_date_day_start(df_merged, UNOM, source):
     try:
         model = joblib.load(str(Path(Path(__file__).parent, "FACT_DATE_START_day.sav")))
 
-        print("Модель FACT_DATE_START_day успешно загружена")
+        # print("Модель FACT_DATE_START_day успешно загружена")
         # Дальнейшие действия с моделью
     except FileNotFoundError:
         print("Ошибка: файл модели FACT_DATE_START_day не найден")
@@ -652,7 +652,7 @@ def predirct_work_end(df_merged, UNOM, source):
     try:
         model = joblib.load(str(Path(Path(__file__).parent, "close_date_day_model.sav")))
 
-        print("Модель close_date_day_model успешно загружена")
+        # print("Модель close_date_day_model успешно загружена")
         # Дальнейшие действия с моделью
     except FileNotFoundError:
         print("Ошибка: файл модели close_date_day_model не найден")
