@@ -1,6 +1,7 @@
 from auth.dependencies import get_current_user_with_permmissions
 from fastapi import APIRouter, Depends
 from share.database import get_session
+from share.services import count as count_instance
 from share.services import create as create_instance
 from share.services import delete_all as delete_all_instances
 from share.services import delete_one as delete_instance
@@ -28,6 +29,7 @@ class CRUDRouter(APIRouter):
         create: bool = True,
         get_all: bool = True,
         get_one: bool = True,
+        get_count: bool = True,
         update: bool = True,
         delete_one: bool = True,
         delete_all: bool = True,
@@ -65,6 +67,16 @@ class CRUDRouter(APIRouter):
                 endpoint=self.db_get_one(),
                 response_model=self.read_model,
                 summary="Get one record",
+                methods=["GET"],
+                # response_model_exclude_none=True
+            )
+
+        if get_count:
+            self.add_api_route(
+                path="/count/",
+                endpoint=self.db_count(),
+                summary="Get counts",
+                response_model=int,
                 methods=["GET"],
                 # response_model_exclude_none=True
             )
@@ -157,13 +169,24 @@ class CRUDRouter(APIRouter):
 
     def db_get_one(self, *args, **kwargs):
         async def route(
-            id,
+            id: int,
             session: AsyncSession = Depends(get_session),
             # current_user=Depends(
             #     get_current_user_with_permmissions(model=self.db_model.__name__, type_permissions="read")
             # ),
         ) -> self.read_model:
             return await get_instance(session=session, id=id, db_model=self.db_model)
+
+        return route
+
+    def db_count(self, *args, **kwargs):
+        async def route(
+            session: AsyncSession = Depends(get_session),
+            # current_user=Depends(
+            #     get_current_user_with_permmissions(model=self.db_model.__name__, type_permissions="read")
+            # ),
+        ) -> self.read_model:
+            return await count_instance(session=session, db_model=self.db_model)
 
         return route
 

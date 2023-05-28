@@ -13,12 +13,17 @@ from building.routers import (
     router_type_social,
     router_wall_material,
 )
+from event.routers import router_event, router_sourcesystem
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from files.routers import router as files_router
+from incident.routers import router as incident_router
 from share.database import init_db
 from starlette.requests import Request
 from user.routers import router as user_router
+from work.routers import router as work_router
+from work.routers import router_worktype
 
 app = FastAPI()
 
@@ -60,6 +65,12 @@ app.include_router(router_status_mkd, prefix="/status_mkd", tags=["Статус�
 app.include_router(router_type_building, prefix="/type_building", tags=["Типы жилищного фонда"])
 app.include_router(router_type_social, prefix="/type_social", tags=["Виды социальных объектов"])
 app.include_router(router_roof_material, prefix="/roof_material", tags=["Материалы кровли"])
+app.include_router(incident_router, prefix="/incident", tags=["Инциденты"])
+app.include_router(work_router, prefix="/work", tags=["Работы"])
+app.include_router(work_router, prefix="/worktype", tags=["Работы"])
+app.include_router(router_event, prefix="/event", tags=["События"])
+app.include_router(router_sourcesystem, prefix="/sourcesystem", tags=["Источники событий"])
+app.include_router(files_router, prefix="/files", tags=["Файлы для обновления"])
 
 if __name__ == "__main__":
     uvicorn.run("main:app", port=9000, reload=True)

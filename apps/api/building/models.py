@@ -1,4 +1,8 @@
+from typing import List, Optional
+
+from incident.models import IncidentRead
 from sqlmodel import Field, Relationship, SQLModel
+from work.models import WorkRead
 
 
 class CategoryMKDBase(SQLModel):
@@ -93,7 +97,6 @@ class RoofMaterial(RoofMaterialBase, table=True):
 
 class BuildingBase(SQLModel):
     name: str
-    login: str = ""
     year: int = 0
     count_floor: int = 0
     count_entrance: int = 0
@@ -104,8 +107,6 @@ class BuildingBase(SQLModel):
     total_area: int = 0
     total_living_area: int = 0
     total_nonliving_area: int = 0
-
-    unom: int
 
 
 class Building(BuildingBase, table=True):
@@ -129,8 +130,33 @@ class Building(BuildingBase, table=True):
     type_building_fund_id: int | None = Field(default=None, foreign_key="typebuildingfund.id")
     type_building_fund: TypeBuildingFund = Relationship(sa_relationship_kwargs={"lazy": "selectin"})
 
+    type_social_object_id: int | None = Field(default=None, foreign_key="typesocialobject.id")
+    type_social_object: TypeSocialObject = Relationship(sa_relationship_kwargs={"lazy": "selectin"})
+
     status_mkd_id: int | None = Field(default=None, foreign_key="statusmkd.id")
     status_mkd: StatusMKD = Relationship(sa_relationship_kwargs={"lazy": "selectin"})
 
     status_manage_mkd_id: int | None = Field(default=None, foreign_key="statusmanagemkd.id")
     status_manage_mkd: StatusManageMKD = Relationship(sa_relationship_kwargs={"lazy": "selectin"})
+
+    category_mkd_id: int | None = Field(default=None, foreign_key="categorymkd.id")
+    category_mkd: CategoryMKD = Relationship(sa_relationship_kwargs={"lazy": "selectin"})
+
+    incidents: list["Incident"] = Relationship(back_populates="building", sa_relationship_kwargs={"lazy": "selectin"})
+    works: list["Work"] = Relationship(back_populates="building", sa_relationship_kwargs={"lazy": "selectin"})
+
+
+class BuildingRead(BuildingBase):
+    id: int
+    project_series: ProjectSeries | None
+    wall_material: WallMaterial | None
+    attribute_crash: AttributeCrash | None
+    queue_clean: QueueClean | None
+    roof_material: RoofMaterial | None
+    type_building_fund: TypeBuildingFund | None
+    type_social_object: TypeSocialObject | None
+    status_mkd: StatusMKD | None
+    status_manage_mkd: StatusManageMKD | None
+    category_mkd: CategoryMKD | None
+    incidents: Optional[List[IncidentRead]]
+    works: Optional[List[WorkRead]]

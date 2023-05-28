@@ -3,6 +3,7 @@ from building.models import (
     AttributeCrashBase,
     Building,
     BuildingBase,
+    BuildingRead,
     CategoryMKD,
     CategoryMKDBase,
     ProjectSeries,
@@ -91,7 +92,7 @@ router_project_series = CRUDRouter(
 
 router_building = CRUDRouter(
     create_model=BuildingBase,
-    read_model=Building,
+    read_model=BuildingRead,
     update_model=BuildingBase,
     db_model=Building,
 )

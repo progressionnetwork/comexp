@@ -19,7 +19,9 @@ class Settings(BaseSettings):
     refresh_token_expire_minutes: int
     celery_broker_url: str
     celery_result_backend: str
+    ym_token: str
     files_path: str = str(Path(Path(__file__).parent, "files", "data"))
+    media_url: str = "https://comexp.intellectg.ru/data_files/"
 
     class Config:
         env_file = "env/dev" if DEBUG else "env/prod"
