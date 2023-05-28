@@ -67,7 +67,7 @@ app.include_router(router_type_social, prefix="/type_social", tags=["Виды с
 app.include_router(router_roof_material, prefix="/roof_material", tags=["Материалы кровли"])
 app.include_router(incident_router, prefix="/incident", tags=["Инциденты"])
 app.include_router(work_router, prefix="/work", tags=["Работы"])
-app.include_router(work_router, prefix="/worktype", tags=["Работы"])
+app.include_router(router_worktype, prefix="/worktype", tags=["Работы"])
 app.include_router(router_event, prefix="/event", tags=["События"])
 app.include_router(router_sourcesystem, prefix="/sourcesystem", tags=["Источники событий"])
 app.include_router(files_router, prefix="/files", tags=["Файлы для обновления"])

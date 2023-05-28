@@ -1,8 +1,10 @@
+ds_research/dataset.csv
 apps/pgsql/data
 apps/rabbitmq/data
 apps/rabbitmq/log
 .isort
 .vscode
+apps/api/files/data
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -161,3 +163,6 @@ cython_debug/
 .idea/lct2023.iml
 .idea/inspectionProfiles/Project_Default.xml
 .idea/inspectionProfiles/profiles_settings.xml
+*.xml
+*.gv
+apps/api/plan/predict/dataset.csv

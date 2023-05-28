@@ -11,7 +11,6 @@ import {
   CNavLink,
 } from '@coreui/react'
 import { useDispatch, useSelector } from 'react-redux'
-import { NavLink } from 'react-router-dom'
 import { toggleSidebarShow } from 'src/redux/sidebar'
 import logo from '../assets/images/logo.png'
 import { AppHeaderDropdown } from './header/index'
@@ -35,15 +34,7 @@ const AppHeader = () => {
         </CHeaderBrand>
         <CHeaderNav className="d-none d-md-flex me-auto">
           <CNavItem>
-            <CNavLink to="/plan" component={NavLink}>
-              Планирование
-            </CNavLink>
-          </CNavItem>
-          <CNavItem>
-            <CNavLink href="#">Пользователи</CNavLink>
-          </CNavItem>
-          <CNavItem>
-            <CNavLink href="#">🎱 Обновить предсказания</CNavLink>
+            <CNavLink style={{ cursor: 'pointer' }}>🎱 Переобучить модели</CNavLink>
           </CNavItem>
         </CHeaderNav>
         <CHeaderNav className="ms-3">

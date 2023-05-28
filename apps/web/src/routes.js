@@ -1,5 +1,5 @@
 import React from 'react'
-const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
+const Plan = React.lazy(() => import('./views/plan/Plan'))
 const Files = React.lazy(() => import('./views/files/File'))
 const Building = React.lazy(() => import('./views/building/Building'))
 const FormList = React.lazy(() => import('./views/dicts/FormList'))
@@ -13,9 +13,10 @@ const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
 
 const routes = [
   { path: '/', exact: true, name: 'Главная' },
-  { path: '/plan', name: 'Плнирование', element: Dashboard },
+  { path: '/plan', name: 'Плнирование', element: Plan },
   { path: '/files', name: 'Файлы данных', element: Files },
   { path: '/building', name: 'Строения', element: Building },
+  { path: '/worktype', name: 'Виды работ', element: FormList },
   { path: '/wall_material', name: 'Матриалы стен', element: FormList },
   { path: '/roof_material', name: 'Матриалы кровли', element: FormList },
   { path: '/category_mkd', name: 'Категории МКД', element: FormList },

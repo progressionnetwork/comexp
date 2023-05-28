@@ -68,6 +68,12 @@ const _nav = [
   },
   {
     component: CNavItem,
+    name: 'Виды работ',
+    to: '/worktype',
+    icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
     name: 'Материалы стен',
     to: '/wall_material',
     icon: <CIcon icon={cilNotes} customClassName="nav-icon" />,

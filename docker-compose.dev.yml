@@ -81,14 +81,14 @@ services:
       rabbitmq:
         condition: service_healthy
   web:
-    build: ./apps/web/
+    build: 
+      context: ./apps/web/
+      dockerfile: dev.Dockerfile
     image: web
     restart: on-failure
     container_name: web
     ports:
       - "3000:80"
-    env_file:
-      - ./apps/web/.env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80"]
       interval: 10s
