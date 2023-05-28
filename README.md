@@ -70,9 +70,9 @@ http://api.comexp.intellectg.ru/docs
 следующие команды:
 
 - git clone https://github.com/progressionnetwork/comexp
-- cd livecity
-- docker compose –f docker-compose.local.yml build —no-cache —pull
-- docker compose –f docker-compose.local.yml up –d
+- cd comexp
+- docker compose –f docker-compose.dev.yml build —no-cache —pull
+- docker compose –f docker-compose.dev.yml up –d
 
 Также для разворачивания только API сервиса можно использовать файл docker-compose.back.yml
 
@@ -81,16 +81,13 @@ http://api.comexp.intellectg.ru/docs
 лучше использовать пользователя superadmin@intellectg.ru):
 - Логин: superadmin@intellectg.ru
 - Пароль: password
-- Логин: admin@intellectg.ru
-- Пароль: password
-- Логин: user@intellectg.ru
-- Пароль: password
 
 ## Полезные ссылки
 - Веб сервис: https://comexp.intellectg.ru/
 - Административная панель: http://intellectg.ru/admin/
 - API сервис: http://api.intellectg.ru/
 - Документация API сервиса: http://api.comexp.intellectg.ru/docs
+- Мониторинг задач:  http://dashboard.comexp.intellectg.ru/
 - Github: https://github.com/gg-goodgenius/livecity
 
 ## Стек используемых технологий и библиотек:
@@ -98,7 +95,7 @@ http://api.comexp.intellectg.ru/docs
 - FastAPI
 - Sbercloud IaaS/PaaS Infrastructure
 - Docker
-- React js \ reduct
+- React js \ redux
 - Catboost, sklearn
 - Nginx
 - Postgresql
