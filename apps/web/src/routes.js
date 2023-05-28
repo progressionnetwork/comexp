@@ -7,9 +7,6 @@ const SourceSystem = React.lazy(() => import('./views/sourceEvent/SourceEvent'))
 const Incident = React.lazy(() => import('./views/incident/Incident'))
 const API = React.lazy(() => import('./views/api/API'))
 const Kafka = React.lazy(() => import('./views/kafka/Kafka'))
-const Login = React.lazy(() => import('./views/pages/login/Login'))
-const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
-const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
 
 const routes = [
   { path: '/', exact: true, name: 'Главная' },
@@ -30,9 +27,6 @@ const routes = [
   { path: '/incident', name: 'Инциденты', element: Incident },
   { path: '/api', name: 'Источники данных: API', element: API },
   { path: '/kafka', name: 'Источники данных: Kafka', element: Kafka },
-  { path: '/login', name: 'Вход', element: Login },
-  { path: '/404', name: 'Ошибка 404', element: Page404 },
-  { path: '/500', name: 'Ошибка 500', element: Page500 },
 ]
 
 export default routes

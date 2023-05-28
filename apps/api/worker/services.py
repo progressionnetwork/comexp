@@ -31,11 +31,15 @@ from files.constants import (
 )
 from files.models import FileData
 from incident.models import Incident
+from plan.models import Plan, PlanEvent, PlanRead, PlanWork
+from plan.predict.predict import get_incident, get_works
 from share.database_sync import get_session
+from share.services import get_one
 from share.utils import list_chunk
 from sqlalchemy.exc import MultipleResultsFound
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import load_only
-from sqlmodel import col, select
+from sqlmodel import SQLModel, col, func, select
 from work.models import Work, WorkType
 
 
@@ -313,3 +317,73 @@ def update_from_file(id: int, task) -> int:
     except Exception as err:
         raise Exception(f"Error {task.request.id}")
     return count_rows
+
+
+def predict_works_and_incidents(
+    id: int, task, street: str, source_id: int, type_fund_id: str, date_start: str, date_end: str
+):
+    print("START PREDICT")
+    print(f"{id=}")
+    print(f"{street=}")
+    print(f"{source_id=}")
+    print(f"{type_fund_id=}")
+    print(f"{date_start=}")
+    print(f"{date_end=}")
+    session = get_session().__next__()
+    statement = select(Plan).where(Plan.id == id)
+    resutls = session.exec(statement)
+    plan = resutls.one_or_none()
+    print(f"Plan ID {plan.id}")
+
+    statement = (
+        select(Building)
+        .where(Building.type_building_fund_id == type_fund_id)
+        .where(col(Building.name).contains(street))
+    )
+    result = session.execute(statement)
+    buildings = result.scalars().all()
+
+    statement = select(SourceSystem).where(SourceSystem.id == sourcesystem_id)
+    result = session.execute(statement)
+    source_system = result.scalar_one()
+
+    for building in buildings:
+        works = get_works(unom=building.id, sourcesytem=source_system.name)
+        if works is not None:
+            for work in works.keys():
+                statement = select(WorkType).where(WorkType.name == work.capitalize())
+                result = session.execute(statement)
+                worktype = result.scalar_one_or_none()
+                if worktype is None:
+                    continue
+                plan_work = PlanWork(
+                    acc=works.get(work).get("acc"),
+                    start_day=works.get(work).get("start_day"),
+                    end_day=works.get(work).get("end_day"),
+                    building_id=building.id,
+                    plan_id=plan.id,
+                    work_id=worktype.id,
+                )
+                session.add(plan_work)
+                session.commit()
+                session.refresh(plan_work)
+
+        incidents = get_incident(unom=building.id, sourcesytem=source_system.name)
+        if incidents is not None:
+            for incident in incidents.keys():
+                statement = (
+                    select(Event).where(Event.name == incident.capitalize()).where(Event.source_id == sourcesystem_id)
+                )
+                result = session.execute(statement)
+                incident_instance = result.scalar_one_or_none()
+                if incident_instance is None:
+                    continue
+                plan_event = PlanEvent(
+                    acc=incidents.get(incident),
+                    building_id=building.id,
+                    plan_id=plan.id,
+                    event_id=incident_instance.id,
+                )
+                session.add(plan_event)
+                session.commit()
+                session.refresh(plan_event)

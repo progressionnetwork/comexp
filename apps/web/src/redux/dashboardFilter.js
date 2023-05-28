@@ -10,15 +10,19 @@ const dashboardFilter = createSlice({
   name: 'dashboardSlice',
   initialState: {
     filter: {
-      category: 0,
+      typeFund: 0,
+      social: 0,
       source: 0,
       endDate: monthAgo(0),
       startDate: monthAgo(1),
     },
   },
   reducers: {
-    setCategory(state, action) {
-      state.filter.category = action.payload
+    setTypeFund(state, action) {
+      state.filter.typeFund = action.payload
+    },
+    setSocial(state, action) {
+      state.filter.social = action.payload
     },
     setSource(state, action) {
       state.filter.source = action.payload
@@ -32,6 +36,7 @@ const dashboardFilter = createSlice({
   },
 })
 
-export const { setCategory, setEndDate, setSource, setStartDate } = dashboardFilter.actions
+export const { setTypeFund, setSocial, setEndDate, setSource, setStartDate } =
+  dashboardFilter.actions
 
 export default dashboardFilter.reducer

@@ -2,6 +2,7 @@ import os
 import sys
 import warnings
 from datetime import date
+from pathlib import Path
 
 import catboost
 import joblib
@@ -407,7 +408,7 @@ def predict_incident(df_merged, UNOM, source):
     best_inc_model = CatBoostClassifier()
 
     try:
-        best_inc_model.load_model("catboost_best_incident_model.cbm")
+        best_inc_model.load_model(str(Path(Path(__file__).parent, "catboost_best_incident_model.cbm")))
         print("catboost_best_incident_model.cbm loaded!")
         # Дальнейшие действия с моделью
     except FileNotFoundError:
@@ -465,7 +466,7 @@ def predict_work(df_merged, UNOM, source):
 
     # Загрузка модели
     best_inc_model = CatBoostClassifier()
-    best_inc_model.load_model("catboost_best_work_model.cbm")
+    best_inc_model.load_model(str(Path(Path(__file__).parent, "catboost_best_work_model.cbm")))
     print("catboost_best_work_model.cbm loaded!")
 
     # Выбор одной строки данных по UNOM
@@ -514,7 +515,7 @@ def predirct_fact_date_day_end(df_merged, UNOM, source):
 
     model = None
     try:
-        model = joblib.load("FACT_DATE_END_day.sav")
+        model = joblib.load(str(Path(Path(__file__).parent, "FACT_DATE_END_day.sav")))
         print("Модель FACT_DATE_END_day успешно загружена")
         # Дальнейшие действия с моделью
     except FileNotFoundError:
@@ -583,7 +584,8 @@ def predirct_fact_date_day_start(df_merged, UNOM, source):
     model = None
 
     try:
-        model = joblib.load("FACT_DATE_START_day.sav")
+        model = joblib.load(str(Path(Path(__file__).parent, "FACT_DATE_START_day.sav")))
+
         print("Модель FACT_DATE_START_day успешно загружена")
         # Дальнейшие действия с моделью
     except FileNotFoundError:
@@ -648,7 +650,8 @@ def predirct_work_end(df_merged, UNOM, source):
     model = None
 
     try:
-        model = joblib.load("close_date_day_model.sav")
+        model = joblib.load(str(Path(Path(__file__).parent, "close_date_day_model.sav")))
+
         print("Модель close_date_day_model успешно загружена")
         # Дальнейшие действия с моделью
     except FileNotFoundError:
@@ -687,37 +690,44 @@ def predirct_work_end(df_merged, UNOM, source):
     return prediction
 
 
-df = pd.read_csv("dataset.csv")
-# first_line = df.iloc[0]
-# print(first_line)
-
-# unique_unom = df['UNOM'].unique().tolist()
-# for unom in unique_unom:
-#     print(unom)
+df = pd.read_csv(str(Path(Path(__file__).parent, "dataset.csv")))
 
 
-def get_works(unom: int, sourcesytem: str) -> dict:
-    works = predict_work(df, unom, sourcesytem)
-    works = list(works.values())
-    fact_date_start = predirct_fact_date_day_start(df, unom, sourcesytem)
-    fact_date_end = predirct_fact_date_day_end(df, unom, sourcesytem)
-    works_with_date = list(zip(works, fact_date_start, fact_date_end))
-    agg_works: dict = dict()
-    for work in works_with_date:
-        if work[0] not in list(agg_works.keys()):
-            all_works = list(filter(lambda x: x[0] == work[0], works_with_date))
-            start_day = [x[1] for x in all_works]
-            end_day = [x[2] for x in all_works]
-            agg_works[work[0]] = {
-                "start_day": sum(start_day) / len(start_day),
-                "end_day": sum(end_day) / len(end_day),
-                "acc": len(all_works) / len(works_with_date),
-            }
-    return agg_works
+def get_works(unom: int, sourcesytem: str) -> dict | None:
+    try:
+        works = predict_work(df, unom, sourcesytem)
+        if isinstance(works, int):
+            return None
+        works = list(works.values())
+        fact_date_start = predirct_fact_date_day_start(df, unom, sourcesytem)
+        fact_date_end = predirct_fact_date_day_end(df, unom, sourcesytem)
+        works_with_date = list(zip(works, fact_date_start, fact_date_end))
+        agg_works: dict = dict()
+        for work in works_with_date:
+            if work[0] not in list(agg_works.keys()):
+                all_works = list(filter(lambda x: x[0] == work[0], works_with_date))
+                start_day = [x[1] for x in all_works]
+                end_day = [x[2] for x in all_works]
+                agg_works[work[0]] = {
+                    "start_day": sum(start_day) / len(start_day),
+                    "end_day": sum(end_day) / len(end_day),
+                    "acc": len(all_works) / len(works_with_date),
+                }
+        return agg_works
+    except Exception as err:
+        print(f"INCEDENT ERROR: {str(err)}")
+        return None
 
 
-def get_incident(unom: int, sourcesytem: str) -> dict:
-    return predict_incident(df, unom, sourcesytem)
+def get_incident(unom: int, sourcesytem: str) -> dict | None:
+    try:
+        result = predict_incident(df, unom, sourcesytem)
+        if isinstance(result, int):
+            return None
+        return result
+    except Exception as err:
+        print(f"INCEDENT ERROR: {str(err)}")
+        return None
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ import {
   CCol,
   CContainer,
   CForm,
+  CFormInput,
   CFormSelect,
   CNav,
   CNavItem,
@@ -21,7 +22,7 @@ import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import { useDispatch, useSelector } from 'react-redux'
 import { Map, YMaps } from 'react-yandex-maps'
-import { setCategory, setEndDate, setSource, setStartDate } from 'src/redux/dashboardFilter'
+import { setEndDate, setSource, setStartDate, setTypeFund } from 'src/redux/dashboardFilter'
 import API from 'src/utils/Api'
 
 const data_initial = {
@@ -123,21 +124,22 @@ const ResultTable = ({ title, columns, rows }) => {
 }
 
 const Plan = () => {
-  const [listCategory, setListCategery] = useState([])
+  const [listTypeFund, setListTypeFund] = useState([])
   const [listSource, setListSource] = useState([])
+  const [street, setStreet] = useState('Перовская')
   const [activeKey, setActiveKey] = useState(1)
   const [mapCenter, setMapCenter] = useState({ center: [55.75, 37.57], zoom: 18 })
   const [result, setResult] = useState(data_initial)
 
   const dispatch = useDispatch()
-  const category = useSelector((state) => state.dashboard.filter.category)
+  const typeFund = useSelector((state) => state.dashboard.filter.typeFund)
   const source = useSelector((state) => state.dashboard.filter.source)
   const startDate = useSelector((state) => state.dashboard.filter.startDate)
   const endDate = useSelector((state) => state.dashboard.filter.endDate)
   const YM_TOKEN = process.env.REACT_APP_YM_TOKEN
-  const get_category = async () => {
-    const response = await API.get(`category_mkd/?offset=0&limit=100`)
-    setListCategery(
+  const get_type_fund = async () => {
+    const response = await API.get(`type_building/?offset=0&limit=100`)
+    setListTypeFund(
       response.data.map((elem) => {
         return { label: elem.name, value: elem.id }
       }),
@@ -153,11 +155,11 @@ const Plan = () => {
   }
 
   const handleMakeData = () => {
-    console.log('click')
+    console.log(typeFund, source, street)
   }
 
   useEffect(() => {
-    get_category()
+    get_type_fund()
     get_source()
   }, [])
   return (
@@ -171,18 +173,26 @@ const Plan = () => {
         <CCardBody className="col justify-content-center">
           <CForm className="m-1 row row-cols-lg-auto g-3 align-items-end  justify-content-between">
             <CCol xs={12}>
-              <h6>Категория</h6>
+              <h6>Улица</h6>
+              <CFormInput
+                defaultValue={street}
+                onChange={(event) => setStreet(event.target.value)}
+                style={{ maxWidth: '200px', width: '200px' }}
+              />
+            </CCol>
+            <CCol xs={12}>
+              <h6>Тип фонда</h6>
               <CFormSelect
-                options={['Выберите категорию', ...listCategory]}
-                defaultValue={category}
-                onChange={(event) => dispatch(setCategory(event.target.value))}
+                options={[...listTypeFund, { label: 'не указывать', value: 0 }]}
+                defaultValue={typeFund}
+                onChange={(event) => dispatch(setTypeFund(event.target.value))}
                 style={{ maxWidth: '200px', width: '200px' }}
               />
             </CCol>
             <CCol xs={12}>
               <h6>Источник</h6>
               <CFormSelect
-                options={['Выберите источник', ...listSource]}
+                options={[...listSource]}
                 defaultValue={source}
                 onChange={(event) => dispatch(setSource(event.target.value))}
                 style={{ maxWidth: '200px', width: '200px' }}

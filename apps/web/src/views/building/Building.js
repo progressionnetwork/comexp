@@ -213,7 +213,7 @@ const BuildingInfo = (data) => {
                       Не закрыто
                     </CBadge>
                   )}
-                  {elem.event.name}
+                  {elem.event.name} ({elem.event.source.name})
                 </CListGroupItem>
               ))}
             </CListGroup>

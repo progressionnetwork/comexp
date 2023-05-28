@@ -19,6 +19,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from files.routers import router as files_router
 from incident.routers import router as incident_router
+from plan.routers import router as plan_router
+from plan.routers import router_event as plan_event_router
+from plan.routers import router_work as router_work_router
 from share.database import init_db
 from starlette.requests import Request
 from user.routers import router as user_router
@@ -54,6 +57,9 @@ async def healthcheck():
 
 app.include_router(user_router, prefix="/users", tags=["Users"])
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
+app.include_router(plan_router, prefix="/plan", tags=["Планировние"])
+app.include_router(plan_event_router, prefix="/plan_events", tags=["Планировние событий"])
+app.include_router(router_work_router, prefix="/plan_works", tags=["Планировние работ"])
 app.include_router(router_building, prefix="/building", tags=["Дома"])
 app.include_router(router_wall_material, prefix="/wall_material", tags=["Материал стен"])
 app.include_router(router_attribute_crash, prefix="/attribute_crash", tags=["Признак аварийности здания"])
