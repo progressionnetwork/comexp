@@ -37,7 +37,11 @@
 
 ## Dashboard:
 Кабинет пользователя.
-![alt text](https://github.com/progressionnetwork/comexp/blob/main/screens/data_architecture.png?raw=true)
+![alt text](https://github.com/progressionnetwork/comexp/blob/main/screens/dashboard.png?raw=true)
+
+![alt text](https://github.com/progressionnetwork/comexp/blob/main/screens/2.png?raw=true)
+
+![alt text](https://github.com/progressionnetwork/comexp/blob/main/screens/3.png?raw=true)
 
 ## Возможности сервиса:
 - Живая статистика по работам 
@@ -70,9 +74,9 @@ http://api.comexp.intellectg.ru/docs
 следующие команды:
 
 - git clone https://github.com/progressionnetwork/comexp
-- cd comexp
-- docker compose –f docker-compose.dev.yml build —no-cache —pull
-- docker compose –f docker-compose.dev.yml up –d
+- cd livecity
+- docker compose –f docker-compose.local.yml build —no-cache —pull
+- docker compose –f docker-compose.local.yml up –d
 
 Также для разворачивания только API сервиса можно использовать файл docker-compose.back.yml
 
@@ -81,20 +85,24 @@ http://api.comexp.intellectg.ru/docs
 лучше использовать пользователя superadmin@intellectg.ru):
 - Логин: superadmin@intellectg.ru
 - Пароль: password
+- Логин: admin@intellectg.ru
+- Пароль: password
+- Логин: user@intellectg.ru
+- Пароль: password
 
 ## Полезные ссылки
 - Веб сервис: https://comexp.intellectg.ru/
-- API сервис: http://api.comexp.intellectg.ru/
+- Административная панель: http://intellectg.ru/admin/
+- API сервис: http://api.intellectg.ru/
 - Документация API сервиса: http://api.comexp.intellectg.ru/docs
-- Мониторинг задач:  http://dashboard.comexp.intellectg.ru/
-- Github: https://github.com/progressionnetwork/comexp
+- Github: https://github.com/gg-goodgenius/livecity
 
 ## Стек используемых технологий и библиотек:
 - Python/Pandas/regex
 - FastAPI
 - Sbercloud IaaS/PaaS Infrastructure
 - Docker
-- React js \ redux
+- React js \ reduct
 - Catboost, sklearn
 - Nginx
 - Postgresql
