@@ -396,8 +396,10 @@ def predict_works_and_incidents(
 def update_priority() -> None:
     sql_text = """ 
         select
-            ROUND(EXTRACT(EPOCH FROM((case when date_system_close is null then date_close  else  date_system_close end) - date_system_create))) as date_system_end,
-            event.id as event,
+            ROUND(EXTRACT(EPOCH FROM((case when date_system_close is null then date_close  else  date_system_close end) - date_system_create))) as delta_time_in_seconds,
+            event.id as id,
+            event.name as name,
+            sourcesystem.id as source,
             sourcesystem.priority as source_priority
         from
             incident,
@@ -408,4 +410,34 @@ def update_priority() -> None:
             and event.source_id = sourcesystem.id
     """
     df = pd.read_sql_query(sql=sql_text, con=engine)
-    print(df)
+    df.loc[df["delta_time_in_seconds"] <= 0, ["delta_time_in_seconds"]] = 1
+    df.loc[:, ["incident_prority"]] = df["delta_time_in_seconds"] / df["delta_time_in_seconds"].max()
+    df = df.drop(["delta_time_in_seconds"], axis=1)
+    df["priority"] = df["incident_prority"] * df["source_priority"]
+    df = df.drop(["incident_prority", "source_priority"], axis=1)
+    df = df.groupby(by=["name", "source", "id"], as_index=False).mean()
+    words_coef = {
+        5: ["пожар", "хлопок", "взрыв", "затоплен", "дым", "газ"],
+    }
+    for coef in words_coef.keys():
+        for word in words_coef[coef]:
+            df.loc[df["name"].str.contains(word), ["priority"]] *= coef
+    df.loc[:, ["priority"]] = df["priority"] / df["priority"].max()
+    df = df.drop(["name", "source"], axis=1)
+    d_results = df.to_dict("records")
+    session = get_session().__next__()
+    statement = select(Event)
+    result = session.execute(statement)
+    event_instanses = result.scalars().all()
+    for event_instance in event_instanses:
+        l_priority = list(filter(lambda x: x.get("id") == event_instance.id, d_results))
+        if len(l_priority) > 0:
+            event_instance.priority = l_priority[0].get("priority")
+        else:
+            event_instance.priority = event_instance.source.priority
+            for coef in words_coef.keys():
+                if set(words_coef[coef]).isdisjoint(set(event_instance.name.split(" "))):
+                    event_instance.priority *= 0.2
+    session.bulk_save_objects(event_instanses)
+    session.commit()
+    session.close()
