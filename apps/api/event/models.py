@@ -5,6 +5,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 class EventBase(SQLModel):
     name: str | None
+    priority: float = Field(default=0.0)
 
 
 class Event(EventBase, table=True):
@@ -16,6 +17,7 @@ class Event(EventBase, table=True):
 
 class SourceSystemBase(SQLModel):
     name: str | None
+    priority: float = Field(default=0.0)
 
 
 class SourceSystem(SourceSystemBase, table=True):

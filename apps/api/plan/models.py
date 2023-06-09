@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from building.models import Building, BuildingRead, TypeBuildingFund
+from building.models import Building, BuildingMinimalRead, TypeBuildingFund
 from event.models import Event, EventRead, SourceSystem
 from sqlmodel import Field, Relationship, SQLModel
 from work.models import WorkType, WorkTypeBase
@@ -27,7 +27,7 @@ class PlanEvent(PlanEventBase, table=True):
 class PlanEventRead(PlanEventBase):
     id: int
     event: EventRead
-    building: BuildingRead
+    building: BuildingMinimalRead
 
 
 class PlanWorkBase(SQLModel):
@@ -52,7 +52,7 @@ class PlanWork(PlanWorkBase, table=True):
 class PlanWorkRead(PlanWorkBase):
     id: int
     work: WorkTypeBase
-    building: BuildingRead
+    building: BuildingMinimalRead
 
 
 class PlanBase(SQLModel):
@@ -61,14 +61,29 @@ class PlanBase(SQLModel):
     status: int = 0
 
 
-class Plan(PlanBase, table=True):
+class PlanMinimal(PlanBase, table=True):
+    __tablename__ = "plan"
+    __table_args__ = {"keep_existing": True}
     id: int = Field(primary_key=True, index=True, default=None)
 
-    events: Optional[list[PlanEvent]] = Relationship(back_populates="plan")
-    works: Optional[list[PlanWork]] = Relationship(back_populates="plan")
+
+class Plan(PlanBase, table=True):
+    __tablename__ = "plan"
+    __table_args__ = {"keep_existing": True}
+    id: int = Field(primary_key=True, index=True, default=None)
+
+    events: Optional[list[PlanEvent]] = Relationship(back_populates="plan", sa_relationship_kwargs={"lazy": "selectin"})
+    works: Optional[list[PlanWork]] = Relationship(back_populates="plan", sa_relationship_kwargs={"lazy": "selectin"})
 
 
 class PlanRead(PlanBase):
     id: int
     events: Optional[list[PlanEventRead]]
     works: Optional[list[PlanWorkRead]]
+
+
+class PlanReadShort(SQLModel):
+    id: int | None
+    name: str | None
+    created_at: datetime | None
+    status: int = 0

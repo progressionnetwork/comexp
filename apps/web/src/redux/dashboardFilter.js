@@ -10,9 +10,9 @@ const dashboardFilter = createSlice({
   name: 'dashboardSlice',
   initialState: {
     filter: {
-      typeFund: 0,
+      typeFund: 42875644,
       social: 0,
-      source: 0,
+      source: 3,
       endDate: monthAgo(0),
       startDate: monthAgo(1),
     },

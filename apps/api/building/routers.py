@@ -3,6 +3,8 @@ from building.models import (
     AttributeCrashBase,
     Building,
     BuildingBase,
+    BuildingMinimal,
+    BuildingMinimalRead,
     BuildingRead,
     CategoryMKD,
     CategoryMKDBase,
@@ -23,7 +25,13 @@ from building.models import (
     WallMaterial,
     WallMaterialBase,
 )
+from fastapi import Depends
+from share.database import get_session
+from share.exceptions import UnkownModelError
 from share.routers import CRUDRouter
+from share.utils import pagination
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 
 router_category_mkd = CRUDRouter(
     create_model=CategoryMKDBase, read_model=CategoryMKD, update_model=CategoryMKDBase, db_model=CategoryMKD
@@ -96,3 +104,17 @@ router_building = CRUDRouter(
     update_model=BuildingBase,
     db_model=Building,
 )
+
+
+@router_building.get("/minimal/", response_model=list[BuildingMinimalRead], response_model_exclude_none=True)
+async def get_all_minimal(
+    pagination: dict = Depends(pagination),
+    session: AsyncSession = Depends(get_session),
+    # current_user=Depends(get_current_user_with_permmissions(model="OKPD2", type_permissions="read")),
+):
+    try:
+        statement = select(BuildingMinimal).limit(pagination.get("limit"))
+        result = await session.execute(statement)
+    except Exception as error:
+        raise UnkownModelError(model="Building", msg=str(error))
+    return result.scalars().all()

@@ -109,7 +109,25 @@ class BuildingBase(SQLModel):
     total_nonliving_area: int = 0
 
 
+class BuildingMinimal(BuildingBase, table=True):
+    __tablename__ = "building"
+    __table_args__ = {"keep_existing": True}
+    id: int = Field(primary_key=True, index=True, default=None)
+    project_series_id: int | None = Field(default=None, foreign_key="projectseries.id")
+    wall_material_id: int | None = Field(default=None, foreign_key="wallmaterial.id")
+    attribute_crash_id: int | None = Field(default=None, foreign_key="attributecrash.id")
+    queue_clean_id: int | None = Field(default=None, foreign_key="queueclean.id")
+    roof_material_id: int | None = Field(default=None, foreign_key="roofmaterial.id")
+    type_building_fund_id: int | None = Field(default=None, foreign_key="typebuildingfund.id")
+    type_social_object_id: int | None = Field(default=None, foreign_key="typesocialobject.id")
+    status_mkd_id: int | None = Field(default=None, foreign_key="statusmkd.id")
+    status_manage_mkd_id: int | None = Field(default=None, foreign_key="statusmanagemkd.id")
+    category_mkd_id: int | None = Field(default=None, foreign_key="categorymkd.id")
+
+
 class Building(BuildingBase, table=True):
+    __tablename__ = "building"
+    __table_args__ = {"keep_existing": True}
     id: int = Field(primary_key=True, index=True, default=None)
 
     project_series_id: int | None = Field(default=None, foreign_key="projectseries.id")
@@ -160,3 +178,9 @@ class BuildingRead(BuildingBase):
     category_mkd: CategoryMKD | None
     incidents: Optional[List[IncidentRead]]
     works: Optional[List[WorkRead]]
+
+
+class BuildingMinimalRead(SQLModel):
+    id: int
+    name: str
+    year: int

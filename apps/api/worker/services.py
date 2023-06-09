@@ -33,7 +33,7 @@ from files.models import FileData
 from incident.models import Incident
 from plan.models import Plan, PlanEvent, PlanRead, PlanWork
 from plan.predict.predict import get_incident, get_works
-from share.database_sync import get_session
+from share.database_sync import engine, get_session
 from share.services import get_one
 from share.utils import list_chunk
 from sqlalchemy.exc import MultipleResultsFound
@@ -334,12 +334,11 @@ def predict_works_and_incidents(
     resutls = session.exec(statement)
     plan = resutls.one_or_none()
     print(f"Plan ID {plan.id}")
-
-    statement = (
-        select(Building)
-        .where(Building.type_building_fund_id == type_fund_id)
-        .where(col(Building.name).contains(street))
-    )
+    if source_id == 0:
+        source_id = 1
+    statement = select(Building).where(col(Building.name).contains(street))
+    if type_fund_id != 0:
+        statement.where(Building.type_building_fund_id == type_fund_id)
     result = session.execute(statement)
     buildings = result.scalars().all()
     print(f"Buildings find: {len(buildings)}")
@@ -354,7 +353,7 @@ def predict_works_and_incidents(
         if works is not None:
             print(f"Works find for building={building.id}: {len(works)}")
             for work in works.keys():
-                statement = select(WorkType).where(WorkType.name == work.capitalize())
+                statement = select(WorkType).where(WorkType.name == work)
                 result = session.execute(statement)
                 worktype = result.scalar_one_or_none()
                 if worktype is None:
@@ -389,3 +388,24 @@ def predict_works_and_incidents(
                 session.add(plan_event)
                 session.commit()
                 session.refresh(plan_event)
+    plan.status = 1
+    session.add(plan)
+    session.commit()
+
+
+def update_priority() -> None:
+    sql_text = """ 
+        select
+            ROUND(EXTRACT(EPOCH FROM((case when date_system_close is null then date_close  else  date_system_close end) - date_system_create))) as date_system_end,
+            event.id as event,
+            sourcesystem.priority as source_priority
+        from
+            incident,
+            event,
+            sourcesystem
+        where
+            incident.event_id = event.id
+            and event.source_id = sourcesystem.id
+    """
+    df = pd.read_sql_query(sql=sql_text, con=engine)
+    print(df)

@@ -1,558 +1,1085 @@
 import os, sys
-import pickle
-
+from datetime import date
 import joblib
 import pandas as pd
 import numpy as np
-import openpyxl
 import catboost
 from catboost import CatBoostClassifier, Pool, CatBoostRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import r2_score, mean_squared_error
-from sklearn.model_selection import KFold
-from sklearn.preprocessing import MinMaxScaler
-from slugify import slugify
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
-from sklearn import metrics
 
 # print module versions for reproducibility
 print('CatBoost version {}'.format(catboost.__version__))
 print('NumPy version {}'.format(np.__version__))
 print('Pandas version {}'.format(pd.__version__))
 
-encoded_values_dict = {'WORK_NAME': {'remont_fasadov': 0,
-                                     'remont_kryshi': 1,
-                                     'remont_musoroprovoda': 2,
-                                     'remont_podezdov_napravlennyi_na_vosstanovlenie_ikh_nadlezhashchego_sostoianiia_i_provodimyi_pri_vypolnenii_inykh_rabot_po_kapitalnomu_remontu_obshchego_imushchestva_v_mnogokvartirnom_dome': 3,
-                                     'remont_podvalnykh_pomeshchenii_otnosiashchikhsia_k_obshchemu_imushchestvu_v_mnogokvartirnom_dome': 4,
-                                     'remont_pozharnogo_vodoprovoda': 5,
-                                     'remont_vnutrennego_vodostoka': 6,
-                                     'remont_vnutridomovykh_inzhenernykh_sistem_elektrosnabzheniia': 7,
-                                     'remont_vnutridomovykh_inzhenernykh_sistem_gazosnabzheniia': 8,
-                                     'remont_vnutridomovykh_inzhenernykh_sistem_goriachego_vodosnabzheniia_razvodiashchie_magistrali': 9,
-                                     'remont_vnutridomovykh_inzhenernykh_sistem_goriachego_vodosnabzheniia_stoiaki': 10,
-                                     'remont_vnutridomovykh_inzhenernykh_sistem_kholodnogo_vodosnabzheniia_razvodiashchie_magistrali': 11,
-                                     'remont_vnutridomovykh_inzhenernykh_sistem_kholodnogo_vodosnabzheniia_stoiaki': 12,
-                                     'remont_vnutridomovykh_inzhenernykh_sistem_teplosnabzheniia_razvodiashchie_magistrali': 13,
-                                     'remont_vnutridomovykh_inzhenernykh_sistem_teplosnabzheniia_stoiaki': 14,
-                                     'remont_vnutridomovykh_inzhenernykh_sistem_vodootvedeniia_kanalizatsii_stoiaki': 15,
-                                     'remont_vnutridomovykh_inzhenernykh_sistem_vodootvedeniia_kanalizatsii_vypuski_i_sbornye_truboprovody': 16,
-                                     'zamena_liftovogo_oborudovaniia': 17,
-                                     'zamena_okonnykh_blokov_raspolozhennykh_v_pomeshcheniiakh_obshchego_polzovaniia': 18},
-                       'ElevatorNumber': {'0': 0,
-                                          '1': 1,
-                                          '10': 2,
-                                          '10а': 3,
-                                          '10б': 4,
-                                          '11': 5,
-                                          '12': 6,
-                                          '1а': 7,
-                                          '1б': 8,
-                                          '1в': 9,
-                                          '2': 10,
-                                          '2а': 11,
-                                          '2б': 12,
-                                          '2в': 13,
-                                          '3': 14,
-                                          '3а': 15,
-                                          '3б': 16,
-                                          '4': 17,
-                                          '4а': 18,
-                                          '4б': 19,
-                                          '5': 20,
-                                          '5а': 21,
-                                          '5б': 22,
-                                          '6': 23,
-                                          '6а': 24,
-                                          '6б': 25,
-                                          '7': 26,
-                                          '7а': 27,
-                                          '7б': 28,
-                                          '8': 29,
-                                          '8а': 30,
-                                          '8б': 31,
-                                          '9': 32,
-                                          '9а': 33,
-                                          '9б': 34},
-                       'incident_name': {'None': 0,
-                                         'anomalnoe_znachenie_massy_v_podaiushchem_truboprovode': 1,
-                                         'anomalnoe_znachenie_obema_v_obratnom_truboprovode': 2,
-                                         'anomalnoe_znachenie_obema_v_podaiushchem_truboprovode': 3,
-                                         'anomalnoe_znachenie_otpushchennoi_teplovoi_energii': 4,
-                                         'anomalnoe_znachenie_raznitsy_temperatur': 5,
-                                         'anomalnoe_znachenie_temperatury_v_obratnom_truboprovode': 6,
-                                         'anomalnoe_znachenie_temperatury_v_podaiushchem_truboprovode': 7,
-                                         'anomalnoe_znachenie_vremeni_narabotki': 8,
-                                         'avariinaia_protechka_s_krovli': 9,
-                                         'avariinaia_protechka_trub_v_podezde': 10,
-                                         'avariinaia_protechka_v_podezde': 11,
-                                         'avariinoe_povrezhdenie_lestnitsy': 12,
-                                         'blokirovka_vkhodnoi_dveri': 13,
-                                         'datchik_vibratsii': 14,
-                                         'gul_shum_na_obekte_ao_mosgaz_zapakh_gaza_na_ulitse': 15,
-                                         'gul_shum_vibratsiia_ot_gazoprovoda': 16,
-                                         'izmenenie_kanala_sviazi': 17,
-                                         'izmenenie_konfiguratsii_uspd': 18,
-                                         'kachestvo_vody_rzhavaia_voda': 19,
-                                         'kachestvo_vody_voda_s_zapakhom': 20,
-                                         'khlopok_gaza': 21,
-                                         'kolodtsy_khlopaet_kryshka': 22,
-                                         'kolodtsy_liuk_raskolot': 23,
-                                         'kolodtsy_liuk_sdvinut': 24,
-                                         'kolodtsy_liuk_zanizhen': 25,
-                                         'kolodtsy_liuk_zavyshen': 26,
-                                         'kolodtsy_prochee': 27,
-                                         'kolodtsy_proval_kolodtsa': 28,
-                                         'kolodtsy_razrushen_asfalt_vokrug_kolodtsa': 29,
-                                         'kritichnoe_otklonenie_temperatury_gvs_nizhe_normy_dnem_monitoring': 30,
-                                         'kritichnoe_otklonenie_temperatury_gvs_nizhe_normy_nochiu_monitoring': 31,
-                                         'lift_trebuet_remonta': 32,
-                                         'nalichie_gribka_pleseni': 33,
-                                         'nalichie_krys_myshei_nasekomykh_v_mestakh_obshchego_polzovaniia': 34,
-                                         'nalichie_nadpisei_obiavlenii': 35,
-                                         'narushenie_na_nastennom_gazoprovode': 36,
-                                         'narushenie_na_nastennom_gazoprovode_zapakh_gaza_v_kukhne': 37,
-                                         'narushenie_podachi_vody_net_vody_v_zdanii': 38,
-                                         'narushenie_podachi_vody_prochee': 39,
-                                         'narushenie_podachi_vody_slaboe_davlenie': 40,
-                                         'narushenie_v_rabote_gazovogo_oborudovaniia': 41,
-                                         'nedogrev_gvs': 42,
-                                         'nedokomplekt_pozharnogo_shkafa': 43,
-                                         'neispravnost_pozharnoi_signalizatsii': 44,
-                                         'neispravnost_zapiraiushchego_ustroistva': 45,
-                                         'neochishchennaia_krovlia': 46,
-                                         'nerabotosposobnost_podemnoi_platformy_dlia_invalidov': 47,
-                                         'nesovpadenie_seriinogo_nomera_pu_na_uspd': 48,
-                                         'net_gaza': 49,
-                                         'net_pitaniia_uspd': 50,
-                                         'net_sviazi_s_pu': 51,
-                                         'net_sviazi_s_uspd': 52,
-                                         'neudovletvoritelnoe_sanitarnoe_soderzhanie_musoroprovoda': 53,
-                                         'neudovletvoritelnoe_tekhnicheskoe_soderzhanie_musoroprovoda': 54,
-                                         'nizkii_uroven_signala_gsm': 55,
-                                         'obrushenie': 56,
-                                         'opisanie_otsutstvuet': 57,
-                                         'otklonenie_gvs_nizhe_normy_dnem_monitoring': 58,
-                                         'otklonenie_gvs_nizhe_normy_nochiu_monitoring': 59,
-                                         'otkryt_kolodets': 60,
-                                         'otkryt_kolodets_mg': 61,
-                                         'otkryt_kolodets_na_gazone': 62,
-                                         'otkryt_shkaf_uspd': 63,
-                                         'otritsatelnye_integralnye_znacheniia': 64,
-                                         'otsutstvie_gvs_v_dome': 65,
-                                         'otsutstvie_khvs_v_dome': 66,
-                                         'otsutstvie_osveshcheniia_v_lifte': 67,
-                                         'otsutstvie_osveshcheniia_v_mestakh_obshchego_polzovaniia': 68,
-                                         'otsutstvie_otopleniia_v_dome': 69,
-                                         'otsutstvie_sviazi': 70,
-                                         'otsutstvuet_tsirkuliatsiia_gvs': 71,
-                                         'otsutstvuiut_aktualnye_mgnovennye_znacheniia': 72,
-                                         'otsutstvuiut_aktualnye_sutochnye_znacheniia': 73,
-                                         'p1_0': 74,
-                                         'p2_0': 75,
-                                         'podtoplenie_kanala_teploseti': 76,
-                                         'podtoplenie_postupaet_voda_v_kameru_teploseti': 77,
-                                         'podtoplenie_povrezhdenie_vodoprovoda_vo_vnutrikvartalnom_kollektore': 78,
-                                         'podtoplenie_prochee': 79,
-                                         'podtoplenie_stroenii': 80,
-                                         'podtoplenie_tech_truboprovoda_na_vodomernom_uzle': 81,
-                                         'podtoplenie_tech_zadvizhki_na_vodomernom_uzle': 82,
-                                         'podtoplenie_voda_postupaet_v_kotlovan_stroitelei': 83,
-                                         'polomka_lifta': 84,
-                                         'polomka_osveshcheniia_pered_podezdom': 85,
-                                         'polomka_pandusa': 86,
-                                         'polomka_pochtovykh_iashchikov': 87,
-                                         'povrezhdenie_asfaltobetonnogo_pokrytiia': 88,
-                                         'povrezhdenie_elementov_fasada': 89,
-                                         'povrezhdenie_elementov_vkhodnoi_dveri': 90,
-                                         'povrezhdenie_inzhenernykh_setei': 91,
-                                         'povrezhdenie_kozyrka_podezda': 92,
-                                         'povrezhdenie_krovli': 93,
-                                         'povrezhdenie_mezhpanelnykh_shvov': 94,
-                                         'povrezhdenie_otdelochnykh_pokrytii_pola_steny_stupenei_peril_drugikh_elementov': 95,
-                                         'povrezhdenie_pola_steny_stupenei_peril_drugikh_elementov': 96,
-                                         'povrezhdenie_polomka_svetilnika': 97,
-                                         'povrezhdenie_sistemy_elektroprovodki_shchitovogo_oborudovaniia': 98,
-                                         'povrezhdenie_vnutrennei_dveri': 99,
-                                         'pozhar': 100,
-                                         'pozhar_zadymlenie': 101,
-                                         'proryv_teploseti_vodoprovoda': 102,
-                                         'protechka_s_balkona_kozyrka': 103,
-                                         'protechka_s_krovli': 104,
-                                         'protechka_trub_v_podezde': 105,
-                                         'protechka_v_podezde': 106,
-                                         'proval': 107,
-                                         'proval_na_meste_staroi_raskopki': 108,
-                                         'provaly_prochee': 109,
-                                         'proverit_nastennyi_gazoprovod': 110,
-                                         'raskhozhdenie_vremeni_pu': 111,
-                                         'razbito_slomano_povrezhdeno_okno_v_mestakh_obshchego_polzovaniia': 112,
-                                         'silnaia_tech_v_sisteme_otopleniia': 113,
-                                         't1_max': 114,
-                                         't1_min': 115,
-                                         'tech_v_sisteme_otopleniia': 116,
-                                         'temperatura_gvs_nizhe_normy': 117,
-                                         'temperatura_v_kvartire_nizhe_normativnoi': 118,
-                                         'temperatura_v_pomeshchenii_obshchego_polzovaniia_nizhe_normativnoi': 119,
-                                         'ugroza_vzryva': 120,
-                                         'utechka_vody_iz_kolodtsa_postupaet_na_proezzhuiu_chast': 121,
-                                         'utechka_vody_iz_kolodtsa_prochee': 122,
-                                         'utechka_vody_iz_pod_asfalta_prochee': 123,
-                                         'utechka_vody_iz_zemli_postupaet_na_proezzhuiu_chast': 124,
-                                         'utechka_vody_iz_zemli_prochee': 125,
-                                         'utechka_vody_prochee': 126,
-                                         'vibriruet_gazovaia_truba': 127,
-                                         'vzryv': 128,
-                                         'zadymlenie': 129,
-                                         'zagriaznenie_lifta': 130,
-                                         'zagriaznenie_okna_v_mestakh_obshchego_polzovaniia': 131,
-                                         'zagriaznenie_otdelochnykh_pokrytii': 132,
-                                         'zagriaznenie_vkhodnoi_dveri': 133,
-                                         'zagriaznenie_vody': 134,
-                                         'zagriaznenie_zamusorennost_kozyrka': 135,
-                                         'zagriaznenie_zamusorennost_podezda': 136,
-                                         'zagriaznenie_zamusorennost_podvala_polupodvala': 137,
-                                         'zagriaznenie_zamusorennost_territorii': 138,
-                                         'zapakh_gari_v_kvartire_podezde': 139,
-                                         'zapakh_gaza_iz_zakrytoi_kvartiry': 140,
-                                         'zapakh_gaza_na_ulitse': 141,
-                                         'zapakh_gaza_na_ulitse_zapakh_gaza_v_dome': 142,
-                                         'zapakh_gaza_ot_gazovogo_oborudovaniia': 143,
-                                         'zapakh_gaza_ot_kolonki': 144,
-                                         'zapakh_gaza_ot_stoiaka': 145,
-                                         'zapakh_gaza_s_ulitsy_v_kvartiru': 146,
-                                         'zapakh_gaza_v_dome': 147,
-                                         'zapakh_gaza_v_kholle': 148,
-                                         'zapakh_gaza_v_kholle_i_kvartire': 149,
-                                         'zapakh_gaza_v_kukhne': 150,
-                                         'zapakh_gaza_v_kukhne_zapakh_gaza_v_dome': 151,
-                                         'zapakh_gaza_v_kvartire': 152,
-                                         'zapakh_gaza_v_kvartire_pomeshchenii': 153,
-                                         'zapakh_gaza_v_kvartire_pomeshchenii_zapakh_gaza_v_dome': 154,
-                                         'zapakh_gaza_v_podezde': 155,
-                                         'zapakh_gaza_v_podezde_i_na_ulitse': 156,
-                                         'zapakh_gaza_v_podezde_i_v_kvartire': 157,
-                                         'zapakh_gaza_v_pomeshchenii': 158,
-                                         'zasor_kanalizatsii': 159,
-                                         'zasor_musoroprovoda': 160,
-                                         'zasor_na_gorodskoi_seti': 161,
-                                         'zasory_prochee': 162,
-                                         'zasory_zasor_na_dvorovoi_seti': 163,
-                                         'zastrevanie_v_lifte': 164},
-                       'source': {'ASUPR': 0,
-                                  'CAFAP': 1,
-                                  'EDC': 2,
-                                  'MGI': 3,
-                                  'MOS_GAS': 4,
-                                  'MVK': 5,
-                                  'NG': 6},
-                       'build_year': {'1900': 0,
-                                      '1924': 1,
-                                      '1930': 2,
-                                      '1932': 3,
-                                      '1939': 4,
-                                      '1947': 5,
-                                      '1950': 6,
-                                      '1951': 7,
-                                      '1952': 8,
-                                      '1953': 9,
-                                      '1954': 10,
-                                      '1955': 11,
-                                      '1956': 12,
-                                      '1957': 13,
-                                      '1958': 14,
-                                      '1959': 15,
-                                      '1960': 16,
-                                      '1961': 17,
-                                      '1962': 18,
-                                      '1963': 19,
-                                      '1964': 20,
-                                      '1965': 21,
-                                      '1966': 22,
-                                      '1967': 23,
-                                      '1968': 24,
-                                      '1969': 25,
-                                      '1970': 26,
-                                      '1971': 27,
-                                      '1972': 28,
-                                      '1973': 29,
-                                      '1974': 30,
-                                      '1975': 31,
-                                      '1976': 32,
-                                      '1977': 33,
-                                      '1978': 34,
-                                      '1979': 35,
-                                      '1980': 36,
-                                      '1981': 37,
-                                      '1982': 38,
-                                      '1983': 39,
-                                      '1984': 40,
-                                      '1985': 41,
-                                      '1988': 42,
-                                      '1996': 43,
-                                      '1997': 44,
-                                      '1998': 45},
-                       'project_series': {'2048744': 0,
-                                          '2048745': 1,
-                                          '2048751': 2,
-                                          '2048752': 3,
-                                          '2048755': 4,
-                                          '2048756': 5,
-                                          '2048757': 6,
-                                          '2048758': 7,
-                                          '2048759': 8,
-                                          '2048763': 9,
-                                          '2048764': 10,
-                                          '2048765': 11,
-                                          '2048776': 12,
-                                          '2048777': 13,
-                                          '2048779': 14,
-                                          '2048780': 15,
-                                          '2048781': 16,
-                                          '2048783': 17,
-                                          '2048785': 18,
-                                          '2048787': 19,
-                                          '2048789': 20,
-                                          '2048798': 21,
-                                          '2048803': 22,
-                                          '2048824': 23,
-                                          '2048842': 24,
-                                          '2048850': 25,
-                                          '2048912': 26,
-                                          '56181305': 27,
-                                          '56183238': 28,
-                                          '56183241': 29,
-                                          '56183243': 30,
-                                          '56183245': 31,
-                                          '56183251': 32,
-                                          '56183254': 33,
-                                          '56183255': 34,
-                                          '56183256': 35,
-                                          '56183257': 36,
-                                          '56183261': 37,
-                                          '56183262': 38,
-                                          '56183263': 39,
-                                          '56183435': 40,
-                                          '73851631': 41},
-                       'floars': {'10': 0,
-                                  '11': 1,
-                                  '12': 2,
-                                  '13': 3,
-                                  '14': 4,
-                                  '16': 5,
-                                  '17': 6,
-                                  '19': 7,
-                                  '22': 8,
-                                  '3': 9,
-                                  '4': 10,
-                                  '5': 11,
-                                  '6': 12,
-                                  '7': 13,
-                                  '8': 14,
-                                  '9': 15},
-                       'entrances': {'1': 0,
-                                     '10': 1,
-                                     '12': 2,
-                                     '2': 3,
-                                     '3': 4,
-                                     '4': 5,
-                                     '5': 6,
-                                     '6': 7,
-                                     '7': 8,
-                                     '8': 9,
-                                     '9': 10},
-                       'energyefficiency_class': {'0': 0},
-                       'wall_material': {'179625089': 0,
-                                         '179625090': 1,
-                                         '179625095': 2,
-                                         '179625097': 3,
-                                         '179625102': 4,
-                                         '179625104': 5,
-                                         '179625107': 6,
-                                         '2048929': 7,
-                                         '261908925': 8},
-                       'passenger_elevators': {'0': 0,
-                                               '1': 1,
-                                               '10': 2,
-                                               '12': 3,
-                                               '16': 4,
-                                               '18': 5,
-                                               '2': 6,
-                                               '3': 7,
-                                               '4': 8,
-                                               '5': 9,
-                                               '6': 10,
-                                               '7': 11,
-                                               '8': 12,
-                                               '9': 13},
-                       'passenger_freight_elevators': {'0': 0,
-                                                       '1': 1,
-                                                       '10': 2,
-                                                       '2': 3,
-                                                       '3': 4,
-                                                       '4': 5,
-                                                       '5': 6,
-                                                       '7': 7,
-                                                       '9': 8},
-                       'roof_cleaning': {'0': 0, '22289162': 1, '22289163': 2},
-                       'COL_781': {'22289201': 0, '22289204': 1, '22289205': 2, '22289214': 3},
-                       'management_status_MKD': {'45063109': 0, '45063584': 1, '45063585': 2},
-                       'freight_elevators': {'0': 0}}
+source_dict = {'ASUPR': 0,
+               'CAFAP': 1,
+               'EDC': 2,
+               'MGI': 3,
+               'MOS_GAS': 4,
+               'MVK': 5,
+               'NG': 6}
 
-
-# predict date of work close
-def predirct_work_end(df_merged):
-    # Загрузка модели
-    model = joblib.load('close_date_day_model.sav')
-
-    # Выбор одной строки данных
-    row = df_merged.iloc[0]
-
-    input_data = row[
-        ['external_create_date_month', 'time_delta', 'external_create_date_day', 'close_date_month']]
-
-    # Преобразование строки в формат, ожидаемый моделью
-    input_data = input_data.values.reshape(1, -1)
-
-    # Предсказание с использованием загруженной модели
-    prediction = model.predict(input_data)
-
-    print(prediction)
-    # print("Result: {0:.2f} %".format(100 * prediction))
-    return prediction
+encoded_values_dict = {'incident_name': {'0': 0,
+  'P1 <= 0': 1,
+  'P2 <= 0': 2,
+  'T1 < min': 3,
+  'T1 > max': 4,
+  'Аварийная протечка в подъезде': 5,
+  'Аварийная протечка с кровли': 6,
+  'Аварийная протечка труб в подъезде': 7,
+  'Аварийное повреждение лестницы': 8,
+  'Аномальное значение времени наработки': 9,
+  'Аномальное значение массы в подающем трубопроводе': 10,
+  'Аномальное значение объема в обратном трубопроводе': 11,
+  'Аномальное значение объема в подающем трубопроводе': 12,
+  'Аномальное значение отпущенной тепловой энергии': 13,
+  'Аномальное значение разницы объемов': 14,
+  'Аномальное значение разницы температур': 15,
+  'Аномальное значение температуры в обратном трубопроводе': 16,
+  'Аномальное значение температуры в подающем трубопроводе': 17,
+  'Блокировка входной двери': 18,
+  'Взрыв': 19,
+  'Взрыв; Пожар': 20,
+  'Взрыв; Пожар; Задымление': 21,
+  'Вибрирует газовая труба': 22,
+  'Восстановление трубопровода, пневмопробойник': 23,
+  'Восстановление трубопровода, просадка грунта на трассе трубопровода': 24,
+  'Восстановление трубопровода, прочее': 25,
+  'Восстановление трубопровода, работа по графику': 26,
+  'Восстановление трубопровода, санация': 27,
+  'Гремит  крышка ковера': 28,
+  'Гремит крышка ковера': 29,
+  'Гремят крышки коверов': 30,
+  'Гул (шум) на объекте АО МОСГАЗ': 31,
+  'Гул (шум) на объекте АО МОСГАЗ; Запах газа на улице': 32,
+  'Гул (шум, вибрация) от газопровода': 33,
+  'Датчик вибрации': 34,
+  'Завышено давление газа': 35,
+  'Загазованность крана № Г2 40162 2,6%': 36,
+  'Загрязнение внутренней двери': 37,
+  'Загрязнение воды': 38,
+  'Загрязнение входной двери': 39,
+  'Загрязнение лифта': 40,
+  'Загрязнение окна в местах общего пользования': 41,
+  'Загрязнение отделочных покрытий': 42,
+  'Загрязнение почтовых ящиков': 43,
+  'Загрязнение/замусоренность козырька': 44,
+  'Загрязнение/замусоренность подвала/полуподвала': 45,
+  'Загрязнение/замусоренность подъезда': 46,
+  'Загрязнение/замусоренность территории': 47,
+  'Задымление': 48,
+  'Задымление в подъезде': 49,
+  'Занижен  газ/ковер': 50,
+  'Занижен ковер': 51,
+  'Занижен ковер м/г': 52,
+  'Занижен колодец': 53,
+  'Запах  газа  на  улице и в подъезде': 54,
+  'Запах в подъезде': 55,
+  'Запах газа в ванной': 56,
+  'Запах газа в доме': 57,
+  'Запах газа в доме от АГВ': 58,
+  'Запах газа в квартире': 59,
+  'Запах газа в квартире (помещении)': 60,
+  'Запах газа в квартире (помещении); Запах газа в доме': 61,
+  'Запах газа в квартире (помещении); Запах газа на улице; Запах газа в доме': 62,
+  'Запах газа в квартире (помещении); Запах газа от газового оборудования': 63,
+  'Запах газа в квартире с улицы': 64,
+  'Запах газа в коллекторе': 65,
+  'Запах газа в котельной': 66,
+  'Запах газа в кухне': 67,
+  'Запах газа в кухне и в холле': 68,
+  'Запах газа в кухне от стояка': 69,
+  'Запах газа в кухне; Запах газа в доме': 70,
+  'Запах газа в кухне; Запах газа в квартире (помещении)': 71,
+  'Запах газа в кухне; Запах газа от газового оборудования': 72,
+  'Запах газа в подъезде': 73,
+  'Запах газа в подъезде и в квартире': 74,
+  'Запах газа в подъезде и в квартире.': 75,
+  'Запах газа в подъезде и квартире': 76,
+  'Запах газа в подъезде и на улице': 77,
+  'Запах газа в помещении': 78,
+  'Запах газа в туалете': 79,
+  'Запах газа в холле': 80,
+  'Запах газа в холле и квартире': 81,
+  'Запах газа в частном доме': 82,
+  'Запах газа в частном доме; Запах газа от газового оборудования': 83,
+  'Запах газа из закрытой квартиры': 84,
+  'Запах газа из подвала': 85,
+  'Запах газа на улице': 86,
+  'Запах газа на улице и в квартире': 87,
+  'Запах газа на улице и в подъезде': 88,
+  'Запах газа на улице, в подъезде': 89,
+  'Запах газа на улице; Запах газа в доме': 90,
+  'Запах газа от ШБДГ': 91,
+  'Запах газа от газового оборудования': 92,
+  'Запах газа от газового оборудования; Запах газа в доме': 93,
+  'Запах газа от колодца': 94,
+  'Запах газа от колодца; Открыт колодец': 95,
+  'Запах газа от колонки': 96,
+  'Запах газа от настенного газопровода': 97,
+  'Запах газа от стояка': 98,
+  'Запах газа по вентиляции': 99,
+  'Запах газа с улицы в квартиру': 100,
+  'Запах газа у АГВ': 101,
+  'Запах гари в квартире/подъезде': 102,
+  'Засор канализации': 103,
+  'Засор мусоропровода': 104,
+  'Засор на городской сети': 105,
+  'Засоры, запах': 106,
+  'Засоры, засор на дворовой сети': 107,
+  'Засоры, прочее': 108,
+  'Застревание в лифте': 109,
+  'Изменение канала связи': 110,
+  'Изменение конфигурации УСПД': 111,
+  'Иные нарушения': 112,
+  'Качество воды - вода с запахом': 113,
+  'Качество воды - вода с осадком': 114,
+  'Качество воды - мутная вода': 115,
+  'Качество воды - окрашенная вода': 116,
+  'Качество воды - ржавая вода': 117,
+  'Качество воды, прочее': 118,
+  'Колодцы на проезжей части, люк завышен': 119,
+  'Колодцы на проезжей части, люк занижен': 120,
+  'Колодцы на проезжей части, открыт колодец': 121,
+  'Колодцы на проезжей части, провал колодца': 122,
+  'Колодцы на проезжей части, прочее': 123,
+  'Колодцы на проезжей части, разрушен асфальт вокруг колодца': 124,
+  'Колодцы на проезжей части, хлопает крышка': 125,
+  'Колодцы, люк завышен': 126,
+  'Колодцы, люк занижен': 127,
+  'Колодцы, люк на боку': 128,
+  'Колодцы, люк расколот': 129,
+  'Колодцы, люк сдвинут': 130,
+  'Колодцы, нет люка и крышки': 131,
+  'Колодцы, провал колодца': 132,
+  'Колодцы, прочее': 133,
+  'Колодцы, разрушен асфальт вокруг колодца': 134,
+  'Колодцы, хлопает крышка': 135,
+  'Критичное отклонение температуры ГВС ниже нормы днем (мониторинг)': 136,
+  'Критичное отклонение температуры ГВС ниже нормы ночью (мониторинг)': 137,
+  'Лифт требует ремонта': 138,
+  'Наличие грибка/плесени': 139,
+  'Наличие крыс/мышей/насекомых в местах общего пользования': 140,
+  'Наличие надписей/объявлений': 141,
+  'Нарушение в работе АОГВ': 142,
+  'Нарушение в работе газового оборудования': 143,
+  'Нарушение в работе газового оборудования; Запах газа в кухне': 144,
+  'Нарушение в работе газового оборудования; Нет газа': 145,
+  'Нарушение в работе газового оборудования; Слабое горение': 146,
+  'Нарушение на настенном газопроводе': 147,
+  'Нарушение на настенном газопроводе; Гул (шум, вибрация) от газопровода': 148,
+  'Нарушение на настенном газопроводе; Запах газа в квартире (помещении)': 149,
+  'Нарушение на настенном газопроводе; Запах газа в кухне': 150,
+  'Нарушение подачи воды, не работает водопроводная колонка': 151,
+  'Нарушение подачи воды, нет воды в ЦТП': 152,
+  'Нарушение подачи воды, нет воды в здании': 153,
+  'Нарушение подачи воды, нет воды на верхних этажах': 154,
+  'Нарушение подачи воды, прочее': 155,
+  'Нарушение подачи воды, слабое давление': 156,
+  'Не  работает  АГВ': 157,
+  'Не работает АГВ': 158,
+  'Не работает колонка.': 159,
+  'Недогрев ГВС': 160,
+  'Недокомплект пожарного шкафа': 161,
+  'Неисправность запирающего устройства': 162,
+  'Неисправность пожарной сигнализации': 163,
+  'Неочищенная кровля': 164,
+  'Неработоспособность подъемной платформы для инвалидов': 165,
+  'Несовпадение серийного номера ПУ на УСПД': 166,
+  'Нет  газа': 167,
+  'Нет  газа в квартире': 168,
+  'Нет газа': 169,
+  'Нет газа в кваптире': 170,
+  'Нет газа в квартире': 171,
+  'Нет газа по стояку': 172,
+  'Нет питания УСПД': 173,
+  'Нет связи с ПУ': 174,
+  'Нет связи с УСПД': 175,
+  'Неудовлетворительное санитарное содержание мусоропровода': 176,
+  'Неудовлетворительное техническое содержание мусоропровода': 177,
+  'Низкий уровень сигнала GSM': 178,
+  'Обрушение': 179,
+  'Описание отсутствует': 180,
+  'Отклонение ГВС ниже нормы днем (мониторинг)': 181,
+  'Отклонение ГВС ниже нормы ночью (мониторинг)': 182,
+  'Открата крышка ковера': 183,
+  'Открыт колодец': 184,
+  'Открыт колодец МГ': 185,
+  'Открыт колодец на газоне': 186,
+  'Открыт колодец на проезжей части': 187,
+  'Открыт колодец; Провал': 188,
+  'Открыт шкаф УСПД': 189,
+  'Открыта крышка колодца': 190,
+  'Открыта крышка колодца (трещит крышка ковера)': 191,
+  'Отрицательные интегральные значения': 192,
+  'Отсутствие ГВС в доме': 193,
+  'Отсутствие ХВС в доме': 194,
+  'Отсутствие освещения в лифте': 195,
+  'Отсутствие освещения в местах общего пользования': 196,
+  'Отсутствие отопления в доме': 197,
+  'Отсутствие связи': 198,
+  'Отсутствует крышка ковера': 199,
+  'Отсутствует крышка колодца': 200,
+  'Отсутствует крышка люка': 201,
+  'Отсутствует циркуляция ГВС': 202,
+  'Отсутствуют актуальные мгновенные значения': 203,
+  'Отсутствуют актуальные суточные значения': 204,
+  'Перекрытие полос': 205,
+  'Поврежден настенный газопровод': 206,
+  'Повреждение асфальтобетонного покрытия': 207,
+  'Повреждение внутренней двери': 208,
+  'Повреждение инженерных сетей': 209,
+  'Повреждение козырька подъезда': 210,
+  'Повреждение кровли': 211,
+  'Повреждение межпанельных швов': 212,
+  'Повреждение отделочных покрытий пола/стены/ступеней/перил/других элементов': 213,
+  'Повреждение плиточного/брусчатого покрытия': 214,
+  'Повреждение подъемной платформы для инвалидов': 215,
+  'Повреждение пола/стены/ступеней/перил/других элементов': 216,
+  'Повреждение системы электропроводки/щитового оборудования': 217,
+  'Повреждение элементов входной двери': 218,
+  'Повреждение элементов фасада': 219,
+  'Повреждение/поломка светильника': 220,
+  'Погас Вечный огонь': 221,
+  'Подтопление канала теплосети': 222,
+  'Подтопление приямка ЦТП': 223,
+  'Подтопление сооружений метрополитена': 224,
+  'Подтопление строений': 225,
+  'Подтопление телефонной сети': 226,
+  'Подтопление, вода поступает в городской коллектор (извне)': 227,
+  'Подтопление, вода поступает в котлован строителей': 228,
+  'Подтопление, повреждение водопровода во внутриквартальном коллекторе': 229,
+  'Подтопление, поступает вода в камеру теплосети': 230,
+  'Подтопление, прочее': 231,
+  'Подтопление, течь задвижки на водомерном узле': 232,
+  'Подтопление, течь трубопровода на водомерном узле': 233,
+  'Пожар': 234,
+  'Пожар; Задымление': 235,
+  'Пожар; Запах газа в доме': 236,
+  'Пожар; Запах газа в квартире (помещении)': 237,
+  'Пожар; Запах газа в кухне': 238,
+  'Пожар; Обрушение': 239,
+  'Поломка лифта': 240,
+  'Поломка освещения перед подъездом': 241,
+  'Поломка пандуса': 242,
+  'Поломка почтовых ящиков': 243,
+  'Провал': 244,
+  'Провал асфальтобетонного покрытия': 245,
+  'Провал грунта': 246,
+  'Провал грунта вокруг ковера': 247,
+  'Провал ковера': 248,
+  'Провал колодца': 249,
+  'Провал на газоне': 250,
+  'Провал на месте старой раскопки': 251,
+  'Провал на проезжей части': 252,
+  'Провал плиточного/брусчатого покрытия': 253,
+  'Провал, промоина': 254,
+  'Провалы, прочее': 255,
+  'Проверить квартиру после пожара': 256,
+  'Проверить настенный газопровод': 257,
+  'Проверить подпор, отключить ГРП № Вешняки, кв.79.': 258,
+  'Проверить работу ГРП': 259,
+  'Проверить работу ЭХЗ': 260,
+  'Провис настенный газопровод': 261,
+  'Прорыв теплосети (водопровода)': 262,
+  'Прорыв теплосети (водопровода); Задымление': 263,
+  'Прорыв теплосети (водопровода); Открыт колодец': 264,
+  'Просадка асфальта вокруг колодца': 265,
+  'Просадка асфальта( колодец)': 266,
+  'Протечка в подъезде': 267,
+  'Протечка с балкона/козырька': 268,
+  'Протечка с кровли': 269,
+  'Протечка труб в подъезде': 270,
+  'Разбито/сломано/повреждено окно в местах общего пользования': 271,
+  'Расхождение времени ПУ': 272,
+  'Сильная течь в системе отопления': 273,
+  'Слабое горение': 274,
+  'Температура ГВС ниже нормы': 275,
+  'Температура в квартире ниже нормативной': 276,
+  'Температура в помещении общего пользования ниже нормативной': 277,
+  'Течет вода из колонки.': 278,
+  'Течь в системе отопления': 279,
+  'Угроза взрыва': 280,
+  'Угроза взрыва; Запах газа в доме': 281,
+  'Угроза обрушения': 282,
+  'Установить дежурство на ГРП № Вешняки кв. 76': 283,
+  'Утечка воды из земли, поступает в канализацию/водосток': 284,
+  'Утечка воды из земли, поступает на проезжую часть': 285,
+  'Утечка воды из земли, прочее': 286,
+  'Утечка воды из колодца, поступает в канализацию/водосток': 287,
+  'Утечка воды из колодца, поступает на проезжую часть': 288,
+  'Утечка воды из колодца, прочее': 289,
+  'Утечка воды из-под асфальта, поступает в канализацию/водосток': 290,
+  'Утечка воды из-под асфальта, поступает на проезжую часть': 291,
+  'Утечка воды из-под асфальта, прочее': 292,
+  'Утечка воды, прочее': 293,
+  'Утечка воды, течет водопроводная колонка или подводка': 294,
+  'Утечка воды, течет спец. вывод': 295,
+  'Хлопает крышка ковера': 296,
+  'Хлопок газа': 297,
+  'Хлопок газа; Нарушение в работе газового оборудования': 298,
+  'просел ковер': 299,
+  'стучит крышка ковера': 300},
+ 'source': {'ASUPR': 0,
+  'CAFAP': 1,
+  'EDC': 2,
+  'GORMOST': 3,
+  'MGI': 4,
+  'MOS_GAS': 5,
+  'MVK': 6,
+  'NG': 7},
+ 'build_year': {'0': 0,
+  '1676': 1,
+  '1690': 2,
+  '1742': 3,
+  '1801': 4,
+  '1812': 5,
+  '1847': 6,
+  '1850': 7,
+  '1860': 8,
+  '1861': 9,
+  '1870': 10,
+  '1875': 11,
+  '1876': 12,
+  '1880': 13,
+  '1885': 14,
+  '1886': 15,
+  '1890': 16,
+  '1892': 17,
+  '1893': 18,
+  '1895': 19,
+  '1897': 20,
+  '1899': 21,
+  '1900': 22,
+  '1901': 23,
+  '1902': 24,
+  '1903': 25,
+  '1904': 26,
+  '1905': 27,
+  '1907': 28,
+  '1908': 29,
+  '1909': 30,
+  '1910': 31,
+  '1911': 32,
+  '1912': 33,
+  '1913': 34,
+  '1914': 35,
+  '1915': 36,
+  '1916': 37,
+  '1917': 38,
+  '1918': 39,
+  '1919': 40,
+  '1920': 41,
+  '1921': 42,
+  '1922': 43,
+  '1924': 44,
+  '1925': 45,
+  '1926': 46,
+  '1927': 47,
+  '1928': 48,
+  '1929': 49,
+  '1930': 50,
+  '1931': 51,
+  '1932': 52,
+  '1933': 53,
+  '1934': 54,
+  '1935': 55,
+  '1936': 56,
+  '1937': 57,
+  '1938': 58,
+  '1939': 59,
+  '1940': 60,
+  '1941': 61,
+  '1943': 62,
+  '1944': 63,
+  '1945': 64,
+  '1946': 65,
+  '1947': 66,
+  '1948': 67,
+  '1949': 68,
+  '1950': 69,
+  '1951': 70,
+  '1952': 71,
+  '1953': 72,
+  '1954': 73,
+  '1955': 74,
+  '1956': 75,
+  '1957': 76,
+  '1958': 77,
+  '1959': 78,
+  '1960': 79,
+  '1961': 80,
+  '1962': 81,
+  '1963': 82,
+  '1964': 83,
+  '1965': 84,
+  '1966': 85,
+  '1967': 86,
+  '1968': 87,
+  '1969': 88,
+  '1970': 89,
+  '1971': 90,
+  '1972': 91,
+  '1973': 92,
+  '1974': 93,
+  '1975': 94,
+  '1976': 95,
+  '1977': 96,
+  '1978': 97,
+  '1979': 98,
+  '1980': 99,
+  '1981': 100,
+  '1982': 101,
+  '1983': 102,
+  '1984': 103,
+  '1985': 104,
+  '1986': 105,
+  '1987': 106,
+  '1988': 107,
+  '1989': 108,
+  '1990': 109,
+  '1991': 110,
+  '1992': 111,
+  '1993': 112,
+  '1994': 113,
+  '1995': 114,
+  '1996': 115,
+  '1997': 116,
+  '1998': 117,
+  '1999': 118,
+  '2000': 119,
+  '2001': 120,
+  '2002': 121,
+  '2003': 122,
+  '2004': 123,
+  '2005': 124,
+  '2006': 125,
+  '2007': 126,
+  '2008': 127,
+  '2009': 128,
+  '2010': 129,
+  '2011': 130,
+  '2012': 131,
+  '2013': 132,
+  '2014': 133,
+  '2015': 134,
+  '2016': 135,
+  '2017': 136,
+  '2018': 137,
+  '2020': 138},
+ 'project_series': {'0': 0,
+  '179773920': 1,
+  '2048744': 2,
+  '2048745': 3,
+  '2048746': 4,
+  '2048751': 5,
+  '2048752': 6,
+  '2048753': 7,
+  '2048754': 8,
+  '2048755': 9,
+  '2048756': 10,
+  '2048757': 11,
+  '2048758': 12,
+  '2048759': 13,
+  '2048762': 14,
+  '2048763': 15,
+  '2048764': 16,
+  '2048765': 17,
+  '2048766': 18,
+  '2048767': 19,
+  '2048768': 20,
+  '2048775': 21,
+  '2048776': 22,
+  '2048777': 23,
+  '2048778': 24,
+  '2048779': 25,
+  '2048780': 26,
+  '2048781': 27,
+  '2048782': 28,
+  '2048783': 29,
+  '2048785': 30,
+  '2048787': 31,
+  '2048788': 32,
+  '2048789': 33,
+  '2048793': 34,
+  '2048795': 35,
+  '2048797': 36,
+  '2048798': 37,
+  '2048799': 38,
+  '2048800': 39,
+  '2048801': 40,
+  '2048803': 41,
+  '2048807': 42,
+  '2048808': 43,
+  '2048809': 44,
+  '2048810': 45,
+  '2048811': 46,
+  '2048812': 47,
+  '2048813': 48,
+  '2048814': 49,
+  '2048815': 50,
+  '2048816': 51,
+  '2048820': 52,
+  '2048821': 53,
+  '2048822': 54,
+  '2048824': 55,
+  '2048825': 56,
+  '2048826': 57,
+  '2048827': 58,
+  '2048830': 59,
+  '2048832': 60,
+  '2048833': 61,
+  '2048837': 62,
+  '2048842': 63,
+  '2048843': 64,
+  '2048844': 65,
+  '2048850': 66,
+  '2048851': 67,
+  '2048854': 68,
+  '2048860': 69,
+  '2048863': 70,
+  '2048874': 71,
+  '2048875': 72,
+  '2048877': 73,
+  '2048878': 74,
+  '2048879': 75,
+  '2048880': 76,
+  '2048896': 77,
+  '2048912': 78,
+  '55767885': 79,
+  '55768376': 80,
+  '56181305': 81,
+  '56183238': 82,
+  '56183239': 83,
+  '56183240': 84,
+  '56183241': 85,
+  '56183243': 86,
+  '56183244': 87,
+  '56183245': 88,
+  '56183246': 89,
+  '56183247': 90,
+  '56183248': 91,
+  '56183249': 92,
+  '56183250': 93,
+  '56183251': 94,
+  '56183252': 95,
+  '56183253': 96,
+  '56183254': 97,
+  '56183255': 98,
+  '56183256': 99,
+  '56183257': 100,
+  '56183258': 101,
+  '56183259': 102,
+  '56183260': 103,
+  '56183261': 104,
+  '56183262': 105,
+  '56183263': 106,
+  '56183265': 107,
+  '56183266': 108,
+  '56183267': 109,
+  '56183268': 110,
+  '56183429': 111,
+  '56183430': 112,
+  '56183431': 113,
+  '56183432': 114,
+  '56183433': 115,
+  '56183435': 116,
+  '56183436': 117,
+  '56183437': 118,
+  '56183438': 119,
+  '56183439': 120,
+  '56183440': 121,
+  '56183441': 122,
+  '56183443': 123,
+  '56183444': 124,
+  '73851130': 125,
+  '73851290': 126,
+  '73851292': 127,
+  '73851293': 128,
+  '73851295': 129,
+  '73851619': 130,
+  '73851621': 131,
+  '73851630': 132,
+  '73851631': 133,
+  '73851632': 134,
+  '73851797': 135},
+ 'floars': {'0': 0,
+  '1': 1,
+  '10': 2,
+  '11': 3,
+  '12': 4,
+  '13': 5,
+  '14': 6,
+  '15': 7,
+  '16': 8,
+  '17': 9,
+  '18': 10,
+  '19': 11,
+  '2': 12,
+  '20': 13,
+  '21': 14,
+  '22': 15,
+  '23': 16,
+  '24': 17,
+  '25': 18,
+  '26': 19,
+  '27': 20,
+  '28': 21,
+  '29': 22,
+  '3': 23,
+  '30': 24,
+  '31': 25,
+  '32': 26,
+  '33': 27,
+  '36': 28,
+  '37': 29,
+  '4': 30,
+  '5': 31,
+  '6': 32,
+  '7': 33,
+  '8': 34,
+  '9': 35},
+ 'entrances': {'0': 0,
+  '1': 1,
+  '10': 2,
+  '11': 3,
+  '12': 4,
+  '13': 5,
+  '14': 6,
+  '15': 7,
+  '2': 8,
+  '3': 9,
+  '4': 10,
+  '5': 11,
+  '6': 12,
+  '7': 13,
+  '8': 14,
+  '9': 15},
+ 'wall_material': {'0': 0,
+  '179625080': 1,
+  '179625089': 2,
+  '179625090': 3,
+  '179625091': 4,
+  '179625092': 5,
+  '179625095': 6,
+  '179625097': 7,
+  '179625099': 8,
+  '179625101': 9,
+  '179625102': 10,
+  '179625103': 11,
+  '179625104': 12,
+  '179625105': 13,
+  '179625107': 14,
+  '179625108': 15,
+  '179625111': 16,
+  '179625112': 17,
+  '179625119': 18,
+  '2048928': 19,
+  '2048929': 20,
+  '2048930': 21,
+  '2048931': 22,
+  '2048932': 23,
+  '2048933': 24,
+  '2048934': 25,
+  '2048935': 26,
+  '2048936': 27,
+  '2048937': 28,
+  '2048938': 29,
+  '2048939': 30,
+  '2048941': 31,
+  '2048942': 32,
+  '2048945': 33,
+  '261908925': 34},
+ 'passenger_elevators': {'0': 0,
+  '1': 1,
+  '10': 2,
+  '11': 3,
+  '12': 4,
+  '13': 5,
+  '14': 6,
+  '16': 7,
+  '17': 8,
+  '18': 9,
+  '2': 10,
+  '20': 11,
+  '22': 12,
+  '24': 13,
+  '28': 14,
+  '3': 15,
+  '4': 16,
+  '5': 17,
+  '6': 18,
+  '7': 19,
+  '8': 20,
+  '9': 21},
+ 'passenger_freight_elevators': {'0': 0,
+  '1': 1,
+  '10': 2,
+  '11': 3,
+  '12': 4,
+  '14': 5,
+  '17': 6,
+  '2': 7,
+  '20': 8,
+  '3': 9,
+  '4': 10,
+  '5': 11,
+  '6': 12,
+  '7': 13,
+  '8': 14,
+  '9': 15},
+ 'roof_cleaning': {'0': 0, '22289162': 1, '22289163': 2},
+ 'COL_781': {'0': 0,
+  '22289201': 1,
+  '22289202': 2,
+  '22289204': 3,
+  '22289205': 4,
+  '22289206': 5,
+  '22289207': 6,
+  '22289209': 7,
+  '22289211': 8,
+  '22289213': 9,
+  '22289214': 10},
+ 'management_status_MKD': {'0': 0,
+  '226721963': 1,
+  '45058207': 2,
+  '45063109': 3,
+  '45063584': 4,
+  '45063585': 5},
+ 'freight_elevators': {'0': 0,
+  '1': 1,
+  '12': 2,
+  '2': 3,
+  '3': 4,
+  '4': 5,
+  '5': 6,
+  '6': 7,
+  '7': 8,
+  '8': 9},
+ 'WORK_NAME': {'0': 0,
+  'замена лифтового оборудования': 1,
+  'замена оконных блоков, расположенных в помещениях общего пользования': 2,
+  'ремонт внутреннего водостока': 3,
+  'ремонт внутридомовых инженерных систем водоотведения (канализации) (выпуски и сборные трубопроводы)': 4,
+  'ремонт внутридомовых инженерных систем водоотведения (канализации) (стояки)': 5,
+  'ремонт внутридомовых инженерных систем газоснабжения': 6,
+  'ремонт внутридомовых инженерных систем горячего водоснабжения (разводящие магистрали)': 7,
+  'ремонт внутридомовых инженерных систем горячего водоснабжения (стояки)': 8,
+  'ремонт внутридомовых инженерных систем теплоснабжения (разводящие магистрали)': 9,
+  'ремонт внутридомовых инженерных систем теплоснабжения (стояки)': 10,
+  'ремонт внутридомовых инженерных систем холодного водоснабжения (разводящие магистрали)': 11,
+  'ремонт внутридомовых инженерных систем холодного водоснабжения (стояки)': 12,
+  'ремонт внутридомовых инженерных систем электроснабжения': 13,
+  'ремонт крыши': 14,
+  'ремонт мусоропровода': 15,
+  'ремонт подвальных помещений, относящихся к общему имуществу в многоквартирном доме': 16,
+  'ремонт подъездов, направленный на восстановление их надлежащего состояния и проводимый при выполнении иных работ по капитальному ремонту общего имущества в многоквартирном доме': 17,
+  'ремонт пожарного водопровода': 18,
+  'ремонт фасадов': 19},
+ 'ElevatorNumber': {'0': 0,
+  '1': 1,
+  '10': 2,
+  '10а': 3,
+  '10б': 4,
+  '11': 5,
+  '12': 6,
+  '1а': 7,
+  '1б': 8,
+  '1в': 9,
+  '2': 10,
+  '2а': 11,
+  '2б': 12,
+  '2в': 13,
+  '3': 14,
+  '3а': 15,
+  '3б': 16,
+  '4': 17,
+  '4а': 18,
+  '4б': 19,
+  '5': 20,
+  '5а': 21,
+  '5б': 22,
+  '6': 23,
+  '6а': 24,
+  '6б': 25,
+  '7': 26,
+  '7а': 27,
+  '7б': 28,
+  '8': 29,
+  '8а': 30,
+  '8б': 31,
+  '9': 32,
+  '9а': 33,
+  '9б': 34}}
 
 
 ### predict incident
-def predict_incident(df_merged):
+def predict_incident(df_merged, UNOM, source):
+    pred = {}
+
     # Загрузка модели
     best_inc_model = CatBoostClassifier()
-    best_inc_model.load_model('catboost_best_incident_model.cbm')
-    print('catboost_best_incident_model.cbm loaded!')
+
+    try:
+        best_inc_model.load_model('catboost_best_incident_model.cbm')
+        print('catboost_best_incident_model.cbm loaded!')
+        # Дальнейшие действия с моделью
+    except FileNotFoundError:
+        print("Ошибка: файл модели catboost_best_incident_model не найден")
+        return 0
+    except Exception as e:
+        print("Ошибка загрузки модели:", str(e))
+        return 0
 
     # Выбор одной строки данных
-    row = df_merged.iloc[4000]
+    row = df_merged.loc[df_merged['UNOM'] == UNOM]
+    if row.empty:
+        print("UNOM not found!")
+        return 0
 
-    input_data = row.drop(['incident_name', 'UNOM'])
+    source_feature = source_dict[source]
+    print(source_feature)
 
-    # Преобразование строки в формат, ожидаемый моделью
-    input_data = input_data.values.reshape(1, -1)
+    # Выбор одной строки данных по UNOM + source
+    for index, row in df_merged.loc[(df_merged['UNOM'] == UNOM) & (df_merged['source'] == source_feature)].iterrows():
+        if row.empty:
+            print("UNOM + source not found!")
+            return 0
 
-    # Предсказание с использованием загруженной модели
-    predictions = best_inc_model.predict(input_data)[0]
-    print(predictions)
+        input_data = row.drop(['incident_name', 'UNOM'])
 
-    for prediction in predictions:
-        original_prediction = None
-        for feature, mapping in encoded_values_dict.items():
-            if prediction in mapping.values():
-                original_value = next(key for key, value in mapping.items() if value == prediction)
-                original_prediction = (feature, original_value)
-                break
-        if original_prediction is not None and 'incident_name' in original_prediction:
-            print(f"Предсказание: {original_prediction[0]} - {original_prediction[1]}")
-        else:
-            print("Неизвестное предсказание")
+        # Преобразование строки в формат, ожидаемый моделью
+        input_data = input_data.values.reshape(1, -1)
 
-    return predictions
+        # Предсказание с использованием загруженной модели
+        predictions = best_inc_model.predict(input_data)[0]
+        print(predictions)
+        flipped_dict = {value: key for key, value in encoded_values_dict['WORK_NAME'].items()}
+
+        i = 0
+        for prediction in predictions:
+            original_prediction = None
+            original_prediction = flipped_dict[prediction[0]]
+            if original_prediction is not None and original_prediction != '0':
+                print(f"Предсказание: WORK_NAME - {original_prediction}")
+                pred[index] = original_prediction[1]
+            else:
+                print("Неизвестное предсказание")
+
+    return pred
 
 
 ### predict work
-def predict_work(df_merged):
+def predict_work(df_merged, UNOM, source):
+    pred = {}
+
     # Загрузка модели
     best_inc_model = CatBoostClassifier()
     best_inc_model.load_model('catboost_best_work_model.cbm')
     print('catboost_best_work_model.cbm loaded!')
 
-    # Выбор одной строки данных
-    row = df_merged.iloc[0]
+    # Выбор одной строки данных по UNOM
+    row = df_merged.loc[df_merged['UNOM'] == UNOM]
+    if row.empty:
+        print("UNOM not found!")
+        return 0
 
-    input_data = row.drop(['WORK_NAME', 'UNOM'])
+    source_feature = source_dict[source]
+    print(source_feature)
 
-    # Преобразование строки в формат, ожидаемый моделью
-    input_data = input_data.values.reshape(1, -1)
+    # Выбор одной строки данных по UNOM + source
+    for index, row in df_merged.loc[(df_merged['UNOM'] == UNOM) & (df_merged['source'] == source_feature)].iterrows():
+        if row.empty:
+            print("UNOM + source not found!")
+            return 0
 
-    # Предсказание с использованием загруженной модели
-    predictions = best_inc_model.predict(input_data)[0]
-    print(predictions)
+        input_data = row.drop(['WORK_NAME', 'UNOM'])
 
-    for prediction in predictions:
-        original_prediction = None
-        for feature, mapping in encoded_values_dict.items():
-            if prediction in mapping.values():
-                original_value = next(key for key, value in mapping.items() if value == prediction)
-                original_prediction = (feature, original_value)
-                break
-        if original_prediction is not None and 'WORK_NAME' in original_prediction:
-            print(f"Предсказание: {original_prediction[0]} - {original_prediction[1]}")
-        else:
-            print("Неизвестное предсказание")
+        # Преобразование строки в формат, ожидаемый моделью
+        input_data = input_data.values.reshape(1, -1)
 
-    return predictions
+        # Предсказание с использованием загруженной модели
+        predictions = best_inc_model.predict(input_data)[0]
+        print(predictions)
+
+        for prediction in predictions:
+            original_prediction = None
+            for feature, mapping in encoded_values_dict.items():
+                if prediction in mapping.values():
+                    original_value = next(key for key, value in mapping.items() if value == prediction)
+                    original_prediction = (feature, original_value)
+                    break
+            if original_prediction is not None:
+                print(f"Предсказание: {original_prediction[0]} - {original_prediction[1]}")
+                pred[index] = original_prediction[1]
+            else:
+                print("Неизвестное предсказание")
+
+    return pred
 
 
 ### predict fact date end day
-def predirct_fact_date_day_end(df_merged):
+def predirct_fact_date_day_end(df_merged, UNOM, source):
+    predictions = []
 
-    model = joblib.load('FACT_DATE_END_day.sav')
+    model = None
+    try:
+        model = joblib.load('FACT_DATE_END_day.sav')
+        print("Модель FACT_DATE_END_day успешно загружена")
+        # Дальнейшие действия с моделью
+    except FileNotFoundError:
+        print("Ошибка: файл модели FACT_DATE_END_day не найден")
+        return 0
+    except Exception as e:
+        print("Ошибка загрузки модели:", str(e))
+        return 0
 
-    # Выбор одной строки данных
-    row = df_merged.iloc[0]
+    # Выбор одной строки данных по UNOM
+    row = df_merged.loc[df_merged['UNOM'] == UNOM]
+    if row.empty:
+        print("UNOM not found!")
+        return 0
 
-    input_data = row[
-        ['PLAN_DATE_START_year',  'PLAN_DATE_START_month',  'PLAN_DATE_START_day',  'PLAN_DATE_END_year',
-            'PLAN_DATE_END_month',  'PLAN_DATE_END_day',  'FACT_DATE_START_year',  'FACT_DATE_START_month',
-            'FACT_DATE_START_day',
-            'external_create_date_year',  'external_create_date_month',  'external_create_date_day',  'done_date_year',
-            'done_date_month',  'done_date_day', 'close_date_year',  'close_date_month',  'close_date_day']]
+    source_feature = source_dict[source]
+    print(source_feature)
 
-    # Преобразование строки в формат, ожидаемый моделью
-    input_data = input_data.values.reshape(1, -1)
+    # Выбор одной строки данных по UNOM + source
+    for index, row in df_merged.loc[(df_merged['UNOM'] == UNOM) & (df_merged['source'] == source_feature)].iterrows():
+        if row.empty:
+            print("UNOM + source not found!")
+            return 0
 
-    # Предсказание с использованием загруженной модели
-    prediction = model.predict(input_data)
+        input_data = row[
+            ['PLAN_DATE_START_year', 'PLAN_DATE_START_month', 'PLAN_DATE_START_day', 'PLAN_DATE_END_year',
+             'PLAN_DATE_END_month', 'PLAN_DATE_END_day', 'FACT_DATE_START_year', 'FACT_DATE_START_month',
+             'FACT_DATE_START_day', 'external_create_date_year', 'external_create_date_month',
+             'external_create_date_day', 'done_date_year', 'done_date_month', 'done_date_day',
+             'close_date_year', 'close_date_month', 'close_date_day']]
 
-    print("FACT_DATE_END_day:", prediction)
-    # print("Result: {0:.2f} %".format(100 * prediction))
-    return prediction
+        # Преобразование строки в формат, ожидаемый моделью
+        input_data = input_data.values.reshape(1, -1)
+
+        # Предсказание с использованием загруженной модели
+        prediction = round(model.predict(input_data)[0], 0)
+        predictions.append(prediction)
+        print(prediction)
+        date_work_start = f"{int(row['PLAN_DATE_START_day'])}.{int(row['PLAN_DATE_START_month'])}.{int(row['PLAN_DATE_START_year'])}"
+        pred_str = f"Ориентировочная фактическая дата окончания работ c момента начала ({date_work_start}) на данном объекте: {prediction} дней."
+        print(pred_str)
+    return predictions
 
 
 ### predict fact date start day
-def predirct_fact_date_day_start(df_merged):
-    model = joblib.load('FACT_DATE_START_day.sav')
+def predirct_fact_date_day_start(df_merged, UNOM, source):
+    predictions = []
+    model = None
+
+    try:
+        model = joblib.load('FACT_DATE_START_day.sav')
+        print("Модель FACT_DATE_START_day успешно загружена")
+        # Дальнейшие действия с моделью
+    except FileNotFoundError:
+        print("Ошибка: файл модели FACT_DATE_START_day не найден")
+        return 0
+    except Exception as e:
+        print("Ошибка загрузки модели:", str(e))
+        return 0
+
+    # Выбор одной строки данных по UNOM
+    row = df_merged.loc[df_merged['UNOM'] == UNOM]
+    if row.empty:
+        print("UNOM not found!")
+        return 0
+
+    source_feature = source_dict[source]
+    print(source_feature)
+
+    # Выбор одной строки данных по UNOM + source
+    for index, row in df_merged.loc[
+        (df_merged['UNOM'] == UNOM) & (df_merged['source'] == source_feature)].iterrows():
+        if row.empty:
+            print("UNOM + source not found!")
+            return 0
+
+        input_data = row[
+            ['PLAN_DATE_END_year',
+             'PLAN_DATE_END_month', 'PLAN_DATE_END_day', 'FACT_DATE_START_year', 'FACT_DATE_START_month',
+             'FACT_DATE_END_year', 'FACT_DATE_END_month', 'FACT_DATE_END_day',
+             'external_create_date_year', 'external_create_date_month', 'external_create_date_day', 'done_date_year',
+             'done_date_month', 'done_date_day', 'close_date_year', 'close_date_month', 'close_date_day']]
+
+        # Преобразование строки в формат, ожидаемый моделью
+        input_data = input_data.values.reshape(1, -1)
+
+        # Предсказание с использованием загруженной модели
+        prediction = round(model.predict(input_data)[0], 0)
+        predictions.append(prediction)
+        print(prediction)
+        pred_str = f"Ориентировочная фактическая дата начала работ данном объекте: {prediction} дней."
+        print(pred_str)
+    return predictions
+
+
+# predict date of work close
+def predirct_work_end(df_merged, UNOM, source):
+    predictions = []
+    model = None
+
+    try:
+        model = joblib.load('close_date_day_model.sav')
+        print("Модель close_date_day_model успешно загружена")
+        # Дальнейшие действия с моделью
+    except FileNotFoundError:
+        print("Ошибка: файл модели close_date_day_model не найден")
+        return 0
+    except Exception as e:
+        print("Ошибка загрузки модели:", str(e))
+        return 0
 
     # Выбор одной строки данных
-    row = df_merged.iloc[0]
+    row = df_merged.loc[df_merged['UNOM'] == UNOM]
+    if row.empty:
+        print("UNOM not found!")
+        return 0
 
-    input_data = row[
-        ['PLAN_DATE_END_year',
-            'PLAN_DATE_END_month',  'PLAN_DATE_END_day',  'FACT_DATE_START_year',  'FACT_DATE_START_month',
-            'FACT_DATE_END_year',  'FACT_DATE_END_month',  'FACT_DATE_END_day',
-            'external_create_date_year',  'external_create_date_month',  'external_create_date_day',  'done_date_year',
-            'done_date_month',  'done_date_day', 'close_date_year',  'close_date_month',  'close_date_day']]
+    source_feature = source_dict[source]
+    print(source_feature)
 
-    # Преобразование строки в формат, ожидаемый моделью
-    input_data = input_data.values.reshape(1, -1)
+    # Выбор одной строки данных по UNOM + source
+    for index, row in df_merged.loc[
+        (df_merged['UNOM'] == UNOM) & (df_merged['source'] == source_feature)].iterrows():
+        if row.empty:
+            print("UNOM + source not found!")
+            return 0
 
-    # Предсказание с использованием загруженной модели
-    prediction = model.predict(input_data)
+        input_data = row[
+            ['external_create_date_month', 'time_delta', 'external_create_date_day', 'close_date_month']]
 
-    print("FACT_DATE_START_day:", prediction)
-    # print("Result: {0:.2f} %".format(100 * prediction))
+        # Преобразование строки в формат, ожидаемый моделью
+        input_data = input_data.values.reshape(1, -1)
+
+        prediction = round(model.predict(input_data)[0], 0)
+        predictions.append(prediction)
+        print(prediction)
+        pred_str = f"Ориентировочная дата закрытия заявки на данном объекте: {prediction} дней."
+        print(pred_str)
+
     return prediction
-
 
 
 df = pd.read_csv('dataset.csv')
 # first_line = df.iloc[0]
 # print(first_line)
 
-# predirct_work_end(df)
-# predict_incident(df)
-# predict_work(df)
-predirct_fact_date_day_start(df)
-predirct_fact_date_day_end(df)
+# unique_unom = df['UNOM'].unique().tolist()
+# for unom in unique_unom:
+#     print(unom)
+
+#work_end_dates = predirct_work_end(df, 27715, 'ASUPR')
+#incidents = predict_incident(df, 27715, 'ASUPR')
+#print(incidents)
+works = predict_work(df, 11466, 'ASUPR')
+print(works)
+#fact_date_start = predirct_fact_date_day_start(df, 27715, 'ASUPR')
+#fact_date_end = predirct_fact_date_day_end(df, 27715, 'ASUPR')
+

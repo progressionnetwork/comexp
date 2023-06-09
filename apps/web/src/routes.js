@@ -1,5 +1,6 @@
 import React from 'react'
 const Plan = React.lazy(() => import('./views/plan/Plan'))
+const PlanList = React.lazy(() => import('./views/plan/PlanList'))
 const Files = React.lazy(() => import('./views/files/File'))
 const Building = React.lazy(() => import('./views/building/Building'))
 const FormList = React.lazy(() => import('./views/dicts/FormList'))
@@ -10,7 +11,9 @@ const Kafka = React.lazy(() => import('./views/kafka/Kafka'))
 
 const routes = [
   { path: '/', exact: true, name: 'Главная' },
-  { path: '/plan', name: 'Плнирование', element: Plan },
+  { path: '/plans', name: 'Список планирования', element: PlanList },
+  { path: '/plan', name: 'Новое планирование', element: Plan },
+  { path: '/plan/:id', name: 'Планирование', element: Plan },
   { path: '/files', name: 'Файлы данных', element: Files },
   { path: '/building', name: 'Строения', element: Building },
   { path: '/worktype', name: 'Виды работ', element: FormList },

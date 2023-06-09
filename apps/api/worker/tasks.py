@@ -2,6 +2,7 @@ from files.constants import FileType
 from worker.app import celery_app
 from worker.services import predict_works_and_incidents
 from worker.services import update_from_file as task_update_from_file
+from worker.services import update_priority
 
 
 @celery_app.task(bind=True)
@@ -20,3 +21,8 @@ def predict(self, id: int, street: str, source_id: int, type_fund_id: str, date_
         date_start=date_start,
         date_end=date_end,
     )
+
+
+@celery_app.task(bind=True)
+def update_incident_priority(self) -> None:
+    return update_priority()

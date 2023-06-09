@@ -1,8 +1,10 @@
 import {
   cibApache,
+  cibBuffer,
   cibGithub,
   cilBuilding,
   cilFile,
+  cilFlower,
   cilIndentIncrease,
   cilNotes,
   cilSpeedometer,
@@ -14,8 +16,14 @@ import { CNavItem, CNavTitle } from '@coreui/react'
 const _nav = [
   {
     component: CNavItem,
-    name: 'Планирование',
+    name: 'Новое планирование',
     to: '/plan',
+    icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Список планирования',
+    to: '/plans',
     icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />,
   },
   {
@@ -135,6 +143,18 @@ const _nav = [
     name: 'Github',
     to: 'https://github.com/progressionnetwork/comexp',
     icon: <CIcon icon={cibGithub} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'API',
+    to: 'https://api.comexp.intellectg.ru/docs/',
+    icon: <CIcon icon={cibBuffer} customClassName="nav-icon" />,
+  },
+  {
+    component: CNavItem,
+    name: 'Flower (мониторинг задач)',
+    to: 'https://dashboard.comexp.intellectg.ru/',
+    icon: <CIcon icon={cilFlower} customClassName="nav-icon" />,
   },
 ]
 

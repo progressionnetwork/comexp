@@ -48,7 +48,6 @@ const BuildingOnMaps = ({ address }) => {
         apikey: YM_TOKEN,
         load: 'geocode',
       }}
-      on
     >
       <div>
         <Map state={mapCenter} style={{ width: '100%', height: '400px' }} onLoad={geocode}>
