@@ -145,6 +145,10 @@ def _presave_worktype_kr(df: pd.DataFrame) -> pd.DataFrame:
     df["is_kr"] = True
     return df[["name", "is_kr"]]
 
+def _presave_working_not_other(df: pd.DataFrame) -> pd.DataFrame:
+    df["name"]
+    df["is_kr"] = True
+    return df[["id", "is_kr"]]
 
 def _presave_work(df: pd.DataFrame) -> pd.DataFrame:
     df["work_type_id"] = df.apply(
@@ -258,6 +262,12 @@ def _update_incident(file_path: str):
         db_model=Incident, file_path=file_path, df_header_maper=incident_df_header_mapper, presave=_presave_incident
     )
 
+
+def _update_service(file_path: str):
+    print(f"UPDATE SERVICE: Started")
+    return _update_service(
+        db_model=Incident, file_path=file_path, df_header_maper=incident_df_header_mapper, presave=_presave_incident
+    )
 
 def _update_work(file_path: str):
     return _update_model(
